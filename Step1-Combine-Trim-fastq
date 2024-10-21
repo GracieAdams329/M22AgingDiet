@@ -1,0 +1,28 @@
+#COMBINE FASTQ FILES FOR EACH BARCODE  
+#In fastq_pass  
+ls >> barcodelist.txt  
+#nano to edit and remove the ‘barcodelist.txt’ line at the bottom of the file  
+barclist=$(cat barcodelist.txt)  
+  
+#Change to the first library folder  
+cd /fastdata/bop23ga/FOLDER/FLOWCELLLIBRARYX/  
+  
+#Unzip and merge fastq files for each barcode into one file  
+for g in ${barclist[@]}  
+do  
+cd ${g}  
+gunzip *.fastq.gz  
+cat *.fastq > /fastdata/bop23ga/FOLDER/fastq_pass/${g}_merge.fastq  
+cd /fastdata/bop23ga/FOLDER/fastq_pass/  
+done  
+  
+#BARCODE TRIMMING  
+#In fastq_pass  
+ls >> barcodelist.txt  
+#nano to edit and remove the ‘barcodelist.txt’ line at the bottom of the file  
+barclist=$(cat barcodelist.txt)  
+  
+for g in ${barclist[@]}  
+do /usr/local/extras/Genomics/apps/dorado/dorado-0.8.1-linux-x64/bin/dorado trim ${g}_merge.fastq > ${g}_merge_trimmed.fastq –emit-fastq  
+done  
+#Dorado default emits a bam file with more data but then this can’t be used by minimap2.
