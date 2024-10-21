@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=2
 # Email notifications
 #SBATCH --mail-user=different email address
-# Email notifications if the job fails
+# Email notifications
 #SBATCH --mail-type=ALL
 # Change job output log file name (default is slurmJOBID)
 #SBATCH --output=output.MinimapStringtieVitC_181024.out
