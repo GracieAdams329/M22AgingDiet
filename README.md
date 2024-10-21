@@ -6,8 +6,7 @@ Help for formatting: https://docs.github.com/en/get-started/writing-on-github/ge
 
 Gracie’s version of notes from Copy of Nanopore_RNAseq_pipeline_cleaned_up
 
-##TERMINOLOGY:
-
+## TERMINOLOGY:
 **FLOW CELL:** the physical flow cell the library is run on
 **LIBRARY:** the prepared library of (usually) 12 barcodes (12 samples)
 **RUN:** the individual run on the Gridion - a new one starts when the library is first run on the flow cell, and extra runs will be added when the flow cell is cleaned and reloaded with library during the experiment
