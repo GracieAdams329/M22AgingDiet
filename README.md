@@ -13,7 +13,7 @@ Gracie’s version of notes from [Copy of Nanopore_RNAseq_pipeline_cleaned_up](h
 **BARCODE:** each individually barcoded sample within the library (usually 12 barcoded samples per library).  
 
 ## [Notes and info on Simons Lab Google Drive  ](https://drive.google.com/drive/folders/1sj6Gr44TPnA9NQvY7-rOnP5ToNrBDRg7?usp=drive_link)
-[Create and monitor a Bash script](https://docs.google.com/document/d/1ApHhlB4Hc_H3MNMu6Nta7mKMURkTkhJfU2bj4hqZ8zg/edit?usp=sharing)  
+[Bioinformatics - Handy Notes](https://drive.google.com/drive/folders/1RptxJ11FY9PhAjUSbzz1uFpFnqcjdmCe?usp=drive_link)  
 [Using the HPC Systems ](https://docs.hpc.shef.ac.uk/en/latest/hpc/index.html#gsc.tab=0)  
 [Gracie RNA Seq Nanopore Pipeline Notes](https://docs.google.com/document/d/1UFiE2f2-SWXBRz_2JHGRO0K69vlv31UealYjHEpKmpM/edit?usp=sharing)  
 [Notes on alternative splicing packages - April 2024](https://docs.google.com/document/d/1rPRdeZvj9XnTXJ-aj3geMLI2yCJgcn_zdt2O4tAytKg/edit?usp=sharing)
