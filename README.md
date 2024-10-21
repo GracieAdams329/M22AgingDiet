@@ -12,5 +12,8 @@ Gracie’s version of notes from [Copy of Nanopore_RNAseq_pipeline_cleaned_up](h
 **RUN:** the individual sequencing run on the GridION - a new one starts when the library is first run on the flow cell and extra runs will be added when the flow cell is cleaned and reloaded with library during the experiment.  
 **BARCODE:** each individually barcoded sample within the library (usually 12 barcoded samples per library).  
 
-[Create and monitor a Bash script](https://docs.google.com/document/d/1ApHhlB4Hc_H3MNMu6Nta7mKMURkTkhJfU2bj4hqZ8zg/edit?usp=sharing)
-[Using the HPC Systems ](https://docs.hpc.shef.ac.uk/en/latest/hpc/index.html#gsc.tab=0)
+## [Notes and info on Simons Lab Google Drive  ](https://drive.google.com/drive/folders/1sj6Gr44TPnA9NQvY7-rOnP5ToNrBDRg7?usp=drive_link)
+[Create and monitor a Bash script](https://docs.google.com/document/d/1ApHhlB4Hc_H3MNMu6Nta7mKMURkTkhJfU2bj4hqZ8zg/edit?usp=sharing)  
+[Using the HPC Systems ](https://docs.hpc.shef.ac.uk/en/latest/hpc/index.html#gsc.tab=0)  
+[Gracie RNA Seq Nanopore Pipeline Notes](https://docs.google.com/document/d/1UFiE2f2-SWXBRz_2JHGRO0K69vlv31UealYjHEpKmpM/edit?usp=sharing)  
+[Notes on alternative splicing packages - April 2024](https://docs.google.com/document/d/1rPRdeZvj9XnTXJ-aj3geMLI2yCJgcn_zdt2O4tAytKg/edit?usp=sharing)
