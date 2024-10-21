@@ -4,10 +4,10 @@
 # Request 2 cores
 #SBATCH --cpus-per-task=2
 # Email notifications
-#SBATCH --mail-user=DIFFERENT
+#SBATCH --mail-user=different email address
 # Email notifications if the job fails
 #SBATCH --mail-type=ALL
 # Change job output log file name (default is slurmJOBID)
 #SBATCH --output=output.MinimapStringtieVitC_181024.out
 # Request more time (default is 8 hours)
-#SBATCH --time=48:00:00
+#SBATCH --time=72:00:00
