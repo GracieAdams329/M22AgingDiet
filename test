@@ -4,7 +4,7 @@
 # Request 2 cores
 #SBATCH --cpus-per-task=2
 # Email notifications
-#SBATCH --mail-user=gadams3@sheffield.ac.uk
+#SBATCH --mail-user=different email address
 # Email notifications if the job fails
 #SBATCH --mail-type=ALL
 # Change job output log file name (default is slurmJOBID)
