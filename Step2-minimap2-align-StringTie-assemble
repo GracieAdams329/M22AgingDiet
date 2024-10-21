@@ -1,0 +1,65 @@
+#ALIGN TO FLY GENOME USING MINIMAP2 THEN ASSEMBLE AND ALIGN TRANSCRIPTS USING STRINGTIE  
+#Minimap2 is a versatile sequence alignment program that aligns DNA or mRNA sequences against a large reference database.  
+#StringTie is a fast and highly efficient assembler of RNA-Seq alignments into potential transcripts. It uses a novel network flow algorithm as well as an optional de novo assembly step to assemble and quantitate full-length transcripts representing multiple splice variants for each gene locus.  
+  
+#TO CONSIDER FOR ALIGNMENT CHOSEN!  
+#https://github.com/lh3/minimap2/issues/208  
+#https://www.reddit.com/r/bioinformatics/comments/1b7oasn/how_does_minimap2_handle_ambigious_alignments/  
+#There’s a lot that minimap2 can do with long reads. Need to discuss w/ Mirre  
+#‘Minimap2 does not work well with short spliced reads. There are many capable RNA-seq mappers for short reads.’  
+#‘Minimap2 often misses small exons.’  
+#https://github.com/lh3/minimap2/#map-long-splice  
+  
+#Copy all merged fastq files to higher folder if needed.  
+#Make the folder MinimapStringtieOutput.  
+  
+#Make a .conf file listing the samples  
+ls >> CONFFILENAME.conf  
+#Edit names to just be eg. ‘barcode01’ (not with _merged.fastq etc.)  
+  
+#Script to submit:  
+#MinimapStringtieScriptPROJECT.sh  
+  
+#!/bin/bash  
+# Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8  
+#SBATCH --mem=8G  
+# Request 2 cores  
+#SBATCH --cpus-per-task=2  
+# Email notifications  
+#SBATCH --mail-user=gadams3@sheffield.ac.uk  
+# Email notifications  
+#SBATCH --mail-type=ALL  
+# Change job output log file name (default is slurmJOBID)  
+#SBATCH --output=output.MinimapStringtieVitC_181024.out  
+# Request more time (default is 8 hours)  
+#SBATCH --time=24:00:00  
+  
+#Activate the repository  
+#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile  
+source /usr/local/extras/Genomics/.bashrc  
+  
+# Set the OPENMP_NUM_THREADS environment variable to 4  
+# This is needed to ensure efficient core usage.  
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK  
+  
+SampleArray=$(cat /fastdata/bop23ga/FOLDER/CONFFILENAME.conf)  
+  
+for g in ${SampleArray[@]}  
+do  
+#Aligment to genome using minimap2  
+minimap2 -ax splice /shared/simons_lab1/Shared/RNAseq/genomes/mel_fasta/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa.gz /fastdata/bop23ga/FOLDER/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}.bam  
+samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}_sorted.bam /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}.bam  
+done  
+  
+for g in ${SampleArray[@]}  
+do  
+#StringTie to assemble transcripts into a transcriptome according to the gene info from the genome  
+#Merge with StringTie  
+stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/RNAseq/genomes/bdgp6_info/dmel-all-r6.32.gtf -o /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}/${g}_stringtie.gtf /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}_sorted.bam  
+done  
+  
+#STRINGTIE - used ‘-e’ to limit to only annotated transcripts previously but this time we didn’t  
+  
+#Copy across the following to shared research drive to nanopore_output/FOLDERNAME:  
+#Merged and trimmed fastq files from the fastq_pass folder  
+#MinimapStringtieOutput  
