@@ -10,4 +10,4 @@
 # Change job output log file name (default is slurmJOBID)
 #SBATCH --output=output.MinimapStringtieVitC_181024.out
 # Request more time (default is 8 hours)
-#SBATCH --time=48:00:00
+#SBATCH --time=72:00:00
