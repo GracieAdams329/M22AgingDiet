@@ -9,14 +9,14 @@
 #‘Minimap2 does not work well with short spliced reads. There are many capable RNA-seq mappers for short reads.’
 #‘Minimap2 often misses small exons.’
 #https://github.com/lh3/minimap2/#map-long-splice
-
+##############################
 #Copy all merged fastq files to higher folder if needed.
 #Make the folder MinimapStringtieOutput.
 
 #Make a .conf file listing the samples
 ls >> CONFFILENAME.conf
 #Edit names to just be eg. ‘barcode01’ (not with _merged.fastq etc.)
-
+------------------------------
 #Script to submit:
 #MinimapStringtieScriptPROJECT.sh
 
@@ -57,7 +57,7 @@ do
 #Merge with StringTie
 stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/RNAseq/genomes/bdgp6_info/dmel-all-r6.32.gtf -o /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}/${g}_stringtie.gtf /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}_sorted.bam
 done
-
+------------------------------
 #STRINGTIE - used ‘-e’ to limit to only annotated transcripts previously but this time we didn’t
 
 #Copy across the following to shared research drive to nanopore_output/FOLDERNAME:
