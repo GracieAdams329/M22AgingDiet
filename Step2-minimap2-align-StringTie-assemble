@@ -47,8 +47,8 @@ SampleArray=$(cat /fastdata/bop23ga/FOLDER/CONFFILENAME.conf)
 for g in ${SampleArray[@]}
 do
 #Aligment to genome using minimap2
-minimap2 -ax splice /shared/simons_lab1/Shared/RNAseq/genomes/mel_fasta/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa.gz /fastdata/bop23ga/FOLDER/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}.bam
-samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}_sorted.bam /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}.bam
+minimap2 -ax splice /shared/simons_lab1/Shared/RNAseq/genomes/mel_fasta/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa.gz /fastdata/bop23ga/FOLDER/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}.sam
+samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}_sorted.bam /fastdata/bop23ga/FOLDER/MinimapStringtieOutput/${g}.sam
 done
 
 for g in ${SampleArray[@]}
