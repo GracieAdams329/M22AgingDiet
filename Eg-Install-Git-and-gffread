@@ -1,0 +1,14 @@
+#On Ubuntu:
+sudo apt install git-all
+git --version #(to check installed)
+git clone https://github.com/gpertea/gffread
+cd gffread
+make release
+cd ../
+sudo mount -t drvfs 'Z:' /mnt/z
+mkdir Salmon_work
+cd Salmon_work/
+wget https://ftp.flybase.org/releases/FB2022_03/dmel_r6.46/gtf/dmel-all-r6.46.gtf.gz #(from FlyBase Index of releases)
+cp -r /mnt/z/simons_lab1/Shared/nanopore_output/Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa .
+gzip -d dmel-all-r6.46.gtf.gz
+../gffread/gffread -w dmel-all-r6.46.fasta -g Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa dmel-all-r6.46.gtf
