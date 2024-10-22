@@ -12,3 +12,5 @@ wget https://ftp.flybase.org/releases/FB2022_03/dmel_r6.46/gtf/dmel-all-r6.46.gt
 cp -r /mnt/z/simons_lab1/Shared/nanopore_output/Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa .
 gzip -d dmel-all-r6.46.gtf.gz
 ../gffread/gffread -w dmel-all-r6.46.fasta -g Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa dmel-all-r6.46.gtf
+
+gffread -w transcripts.fa -g /path/to/genome.fa transcripts.gtf
