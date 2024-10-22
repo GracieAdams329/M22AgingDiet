@@ -44,4 +44,4 @@ stringtie --merge -p 2 -o vitc_stringtie_merged.gtf -G /fastdata/bop23ga/Gracie_
 #Copy back to nanopore_output folder on Z drive
 
 #On fastdata
-salmon quant -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapStringtieOutput/barcode13.bam -o salmon_quant
+salmon quant -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapStringtieOutput/barcode13.bam -o salmon_quant #also tried _sorted.bam
