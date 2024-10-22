@@ -75,8 +75,8 @@ SampleArray=$(cat /fastdata/bop23ga/Gracie_VitC_220224/GracieVitC220224Conf.conf
 for g in ${SampleArray[@]}
 do
 #Aligment to genome using minimap2
-minimap2 -ax splice /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie_merged.fasta /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans.bam
-samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans_sorted.bam /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans.bam
+minimap2 -ax splice /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie_merged.fasta /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans.sam
+samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans_sorted.bam /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans.sam
 done
 
 for g in ${SampleArray[@]}
