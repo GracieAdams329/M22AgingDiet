@@ -1,1 +1,3 @@
+conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
 
+salmon quant -t fastq_pass/barcode13_merge_trimmed.fastq -l A -a MinimapStringtieOutput/barcode13.bam -o salmon_quant
