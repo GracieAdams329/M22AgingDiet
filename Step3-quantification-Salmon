@@ -1,3 +1,30 @@
 conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
 
-salmon quant -t fastq_pass/barcode13_merge_trimmed.fastq -l A -a MinimapStringtieOutput/barcode13.bam -o salmon_quant
+#‘If you have access to the genome FASTA and GTF used for alignment consider generating a transcriptome fasta using a command like:
+gffread -w output.fa -g genome.fa genome.gtf
+#you can find the gffread utility at (http://ccb.jhu.edu/software/stringtie/gff.shtml)’
+
+#On fastdata:
+gzip -d Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa.gz
+#Copy to nanopore_output folder on Z drive
+
+#On Ubuntu:
+sudo apt install git-all
+git --version #(to check installed)
+git clone https://github.com/gpertea/gffread
+cd gffread
+make release
+cd ../
+sudo mount -t drvfs 'Z:' /mnt/z
+mkdir Salmon_work
+cd Salmon_work/
+wget https://ftp.flybase.org/releases/FB2022_03/dmel_r6.46/gtf/dmel-all-r6.46.gtf.gz #(from FlyBase Index of releases)
+cp -r /mnt/z/simons_lab1/Shared/nanopore_output/Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa .
+gzip -d dmel-all-r6.46.gtf.gz
+../gffread/gffread -w dmel-all-r6.46.fasta -g Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa dmel-all-r6.46.gtf
+cp -r Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa.fai /mnt/z/simons_lab1/Shared/nanopore_output/
+cp -r dmel-all-r6.46.fasta /mnt/z/simons_lab1/Shared/nanopore_output/
+
+#On fastdata:
+#copy dmel-all-r6.46.fasta and Drosophila_melanogaster.BDGP6.46.dna.toplevel.fa/.fai to fastdata
+salmon quant -t dmel-all-r6.46.fasta -l A -a MinimapStringtieOutput/barcode13.bam -o salmon_quant
