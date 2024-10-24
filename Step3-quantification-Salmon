@@ -81,3 +81,5 @@ minimap2 -ax splice -p 1.0 -N 100 /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/
 #-p sets minimum secondary to primaru score ratio, -N limits number of reported secondary alignments (from https://combine-lab.github.io/salmon-tutorials/2021/ont-long-read-quantification/)
 done
 ------------------------------
+
+salmon quant -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
