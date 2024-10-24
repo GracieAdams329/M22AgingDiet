@@ -44,6 +44,7 @@ stringtie --merge -p 2 -o vitc_stringtie_merged.gtf -G /fastdata/bop23ga/Gracie_
 #Copy back to nanopore_output folder on Z drive
 
 #On fastdata
+#See this Q and further links to ONT pipeline on GitHub/for salmon: https://github.com/COMBINE-lab/salmon/issues/790
 ------------------------------
 #Script to submit:
 #MinimapOURTransScriptGracieVitC220224.sh
@@ -58,7 +59,7 @@ stringtie --merge -p 2 -o vitc_stringtie_merged.gtf -G /fastdata/bop23ga/Gracie_
 # Email notifications if the job fails
 #SBATCH --mail-type=ALL
 # Change job output log file name (default is slurmJOBID)
-#SBATCH --output=output.MinimapStringtieOURTranscVitC_221024.out
+#SBATCH --output=output.MinimapOURTranscVitC_241024.out
 # Request more time (default is 8 hours)
 #SBATCH --time=24:00:00
 
@@ -74,10 +75,9 @@ SampleArray=$(cat /fastdata/bop23ga/Gracie_VitC_220224/GracieVitC220224Conf.conf
 
 for g in ${SampleArray[@]}
 do
-#Aligment to genome using minimap2
-minimap2 -ax splice /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie_merged.fasta /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans.sam
+#Aligment to transcripome using minimap2
+minimap2 -ax splice -p 1.0 -N 100 /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie_merged.fasta /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapOURTransOutput/${g}_OURTrans.sam
+#-a is for long reads, -x default is map-ont which is for long noisy reads, however we want -x splice.
+#-p sets minimum secondary to primaru score ratio, -N limits number of reported secondary alignments (from https://combine-lab.github.io/salmon-tutorials/2021/ont-long-read-quantification/)
 done
 ------------------------------
-
-salmon quant --ont -t gtfFiles/vitc_stringtie_merged.fasta -l U -a MinimapStringtieOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
-https://combine-lab.github.io/salmon-tutorials/2021/ont-long-read-quantification/
