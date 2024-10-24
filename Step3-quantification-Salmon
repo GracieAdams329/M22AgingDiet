@@ -46,7 +46,7 @@ stringtie --merge -p 2 -o vitc_stringtie_merged.gtf -G /fastdata/bop23ga/Gracie_
 #On fastdata
 ------------------------------
 #Script to submit:
-#MinimapStringtieOURTransScriptGracieVitC220224.sh
+#MinimapOURTransScriptGracieVitC220224.sh
 
 #!/bin/bash
 # Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
@@ -76,12 +76,5 @@ for g in ${SampleArray[@]}
 do
 #Aligment to genome using minimap2
 minimap2 -ax splice /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie_merged.fasta /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans.sam
-samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans_sorted.bam /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans.sam
-done
-
-for g in ${SampleArray[@]}
-do
-#StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
-stringtie -p 2 -B -L -G /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie_merged.gtf -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput//${g}_OURTrans/${g}_OURTrans_stringtie.gtf /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans_sorted.bam
 done
 ------------------------------
