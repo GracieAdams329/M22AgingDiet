@@ -78,3 +78,5 @@ do
 minimap2 -ax splice /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie_merged.fasta /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOURTransOutput/${g}_OURTrans.sam
 done
 ------------------------------
+
+salmon quant -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapStringtieOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
