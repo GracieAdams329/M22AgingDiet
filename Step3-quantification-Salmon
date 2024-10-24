@@ -79,4 +79,5 @@ minimap2 -ax splice /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie
 done
 ------------------------------
 
-salmon quant -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapStringtieOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
+salmon quant --ont -t gtfFiles/vitc_stringtie_merged.fasta -l U -a MinimapStringtieOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
+https://combine-lab.github.io/salmon-tutorials/2021/ont-long-read-quantification/
