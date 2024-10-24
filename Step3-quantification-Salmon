@@ -83,3 +83,10 @@ done
 ------------------------------
 
 salmon quant -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
+
+
+
+
+
+
+TRY FOLLOWING https://github.com/epi2me-labs/wf-transcriptomes
