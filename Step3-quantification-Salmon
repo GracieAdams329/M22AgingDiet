@@ -86,3 +86,7 @@ done
 
 TRY FOLLOWING https://github.com/epi2me-labs/wf-transcriptomes
 salmon quant --noErrorModel -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
+
+#FIRST TRIED from this: https://gist.github.com/mikelove/922c323a7ae02ac5cedd9d1b3019e0fb
+salmon quant --ont --noLengthCorrection -t gtfFiles/vitc_stringtie_merged.fasta -l U -a MinimapOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
+salmon quant --ont --noLengthCorrection -t gtfFiles/vitc_stringtie_merged.fasta -l U -a MinimapOURTransOutput_splicesetting/barcode13_OURTrans.sam -o salmon_quant
