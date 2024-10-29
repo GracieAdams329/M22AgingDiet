@@ -82,11 +82,7 @@ minimap2 -ax map-ont -p 1.0 -N 100 /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles
 done
 ------------------------------
 
-salmon quant -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
-
-
-
-
-
+#Potential issue with gtf file? See https://github.com/alexdobin/STAR/issues/1140
 
 TRY FOLLOWING https://github.com/epi2me-labs/wf-transcriptomes
+salmon quant --noErrorModel -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
