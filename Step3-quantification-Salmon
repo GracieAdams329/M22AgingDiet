@@ -77,6 +77,7 @@ for g in ${SampleArray[@]}
 do
 #Aligment to transcripome using minimap2
 minimap2 -ax map-ont -p 1.0 -N 100 /fastdata/bop23ga/Gracie_VitC_220224/gtfFiles/vitc_stringtie_merged.fasta /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapOURTransOutput/${g}_OURTrans.sam
+samtools view -Sb /fastdata/bop23ga/Gracie_VitC_220224/MinimapOURTransOutput/${g}_OURTrans.sam > /fastdata/bop23ga/Gracie_VitC_220224/MinimapOURTransOutput/${g}_OURTrans.bam
 #-a is for long reads, -x default is map-ont which is for long noisy reads. We usually do -x splice, but try -ax map-ont here to see if the error calculations help with the read length issues in salmon.
 #-p sets minimum secondary to primaru score ratio, -N limits number of reported secondary alignments (from https://combine-lab.github.io/salmon-tutorials/2021/ont-long-read-quantification/)
 done
@@ -86,7 +87,3 @@ done
 
 TRY FOLLOWING https://github.com/epi2me-labs/wf-transcriptomes
 salmon quant --noErrorModel -t gtfFiles/vitc_stringtie_merged.fasta -l A -a MinimapOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
-
-#FIRST TRIED from this: https://gist.github.com/mikelove/922c323a7ae02ac5cedd9d1b3019e0fb
-salmon quant --ont --noLengthCorrection -t gtfFiles/vitc_stringtie_merged.fasta -l U -a MinimapOURTransOutput/barcode13_OURTrans.sam -o salmon_quant
-salmon quant --ont --noLengthCorrection -t gtfFiles/vitc_stringtie_merged.fasta -l U -a MinimapOURTransOutput_splicesetting/barcode13_OURTrans.sam -o salmon_quant
