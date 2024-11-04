@@ -5,3 +5,6 @@ cd /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/
 wget https://ftp.ensembl.org/pub/release-103/fasta/drosophila_melanogaster/cdna/Drosophila_melanogaster.BDGP6.32.cdna.all.fa.gz
 #Didn't use cdna before as didn't want to just target coding regions but perhaps this gtf file is the issue.
 salmon quant -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l A -a MinimapStringtieOutput/barcode13_sorted.bam -o salmon_quant
+
+#Look further into the mapping here: https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon-flipped/lessons/08_quasi_alignment_salmon.html
+#Maybe indexing needed for this or something???
