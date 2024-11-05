@@ -50,4 +50,4 @@ stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_T
 done
 ------------------------------
 
-salmon quant -t TRANSCRIPTOME -la A -a BAM FILE -o salmon_quant
+salmon quant -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l A -a MinimapStringtieOutput/barcode13_sorted.bam -o salmon_quant/
