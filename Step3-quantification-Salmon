@@ -1,5 +1,8 @@
 conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
 
+cd /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes
+wget https://ftp.ensembl.org/pub/release-103/fasta/drosophila_melanogaster/cdna/Drosophila_melanogaster.BDGP6.32.cdna.all.fa.gz
+
 #Try aligning to the cDNA
 #Script: MinimapStringtiecDNAScriptGracieVitC220224.sh
 ------------------------------
