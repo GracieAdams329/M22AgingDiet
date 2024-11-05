@@ -9,6 +9,9 @@ gunzip Drosophila_melanogaster.BDGP6.32.cdna.all.fa.gz
 wget https://ftp.ensembl.org/pub/release-103/gtf/drosophila_melanogaster/Drosophila_melanogaster.BDGP6.32.103.gtf.gz
 gunzip Drosophila_melanogaster.BDGP6.32.103.gtf.gz
 
+#On Ubuntu
+gffread -w /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -g /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf
+
 #Align to the genome from ensembl and use the gtf from ensembl for StringTie
 #Script: MinimapStringtiecriptGracieVitC220224.sh
 ------------------------------
@@ -50,4 +53,4 @@ stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_T
 done
 ------------------------------
 
-salmon quant -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l A -a MinimapStringtieOutput/barcode13_sorted.bam -o salmon_quant/
+salmon quant -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -l A -a MinimapStringtieOutput/barcode13_sorted.bam -o salmon_quant/
