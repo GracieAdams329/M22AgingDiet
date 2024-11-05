@@ -2,10 +2,15 @@ conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
 
 cd /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes
 wget https://ftp.ensembl.org/pub/release-103/fasta/drosophila_melanogaster/cdna/Drosophila_melanogaster.BDGP6.32.cdna.all.fa.gz
+gunzip Drosophila_melanogaster.BDGP6.32.cdna.all.fa.gz
 #NOTE THAT THERE IS ALSO A SEPARATE NCRNA FILE IF WE WANTED TO USE THAT TOO.
 
-#Try aligning to the cDNA
-#Script: MinimapStringtiecDNAScriptGracieVitC220224.sh
+#Also got the gtf from here instead of where it was from before
+wget https://ftp.ensembl.org/pub/release-103/gtf/drosophila_melanogaster/Drosophila_melanogaster.BDGP6.32.103.gtf.gz
+gunzip Drosophila_melanogaster.BDGP6.32.103.gtf.gz
+
+#Align to the genome from ensembl and use the gtf from ensembl for StringTie
+#Script: MinimapStringtiecriptGracieVitC220224.sh
 ------------------------------
 #!/bin/bash
 # Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
@@ -17,7 +22,7 @@ wget https://ftp.ensembl.org/pub/release-103/fasta/drosophila_melanogaster/cdna/
 # Email notifications if the job fails
 #SBATCH --mail-type=ALL
 # Change job output log file name (default is slurmJOBID)
-#SBATCH --output=output.MinimapStringtiecDNAVitC_041124.out
+#SBATCH --output=output.MinimapStringtieVitC_051124.out
 # Request more time (default is 8 hours)
 #SBATCH --time=24:00:00
 
@@ -34,15 +39,14 @@ SampleArray=$(cat /fastdata/bop23ga/Gracie_VitC_220224/GracieVitC220224Conf.conf
 for g in ${SampleArray[@]}
 do
 #Aligment to genome using minimap2
-minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtiecDNAOutput/${g}.sam
-samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtiecDNAOutput/${g}_sorted.bam /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtiecDNAOutput/${g}.sam
+minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}.sam
+samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}_sorted.bam /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}.sam
 done
 
 for g in ${SampleArray[@]}
 do
 #StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
-#Merge with StringTie
-stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/dmel-all-r6.32.gtf -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtiecDNAOutput/${g}/${g}_stringtie.gtf /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtiecDNAOutput/${g}_sorted.bam
+stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}/${g}_stringtie.gtf /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}_sorted.bam
 done
 ------------------------------
 
