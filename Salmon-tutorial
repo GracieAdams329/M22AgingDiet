@@ -1,0 +1,31 @@
+#FROM HERE: https://combine-lab.github.io/salmon-tutorials/2021/ont-long-read-quantification/
+
+wget http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_31/gencode.v31.transcripts.fa.gz
+wget --user-agent="Mozilla" https://www.lexogen.com/wp-content/uploads/2021/06/SIRV_Set3_Norm_sequence-design-overview_20210507a.xlsx
+wget --user-agent="Mozilla" https://www.lexogen.com/wp-content/uploads/2021/06/SIRV_Set3_Norm_Sequences_20210507.zip
+unzip SIRV_Set3_Norm_Sequences_20210507.zip
+sed -n '/>SIRV1/q;p' SIRV_Set3_Norm_Sequences_20210507/SIRV_ERCC_multi-fasta_20210507.fasta > ERCC.fa
+cat <( zcat gencode.v31.transcripts.fa.gz ) ERCC.fa > merged_txps.fa
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR605/002/SRR6058582/SRR6058582_1.fastq.gz
+gunzip SRR6058582_1.fastq.gz
+-------
+#Script:
+#!/bin/bash
+# Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
+#SBATCH --mem=8G
+# Request 2 cores
+#SBATCH --cpus-per-task=2
+# Change job output log file name (default is slurmJOBID)
+#SBATCH --output=output.salmontut.out
+
+#Activate the repository
+#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
+source /usr/local/extras/Genomics/.bashrc
+
+# Set the OPENMP_NUM_THREADS environment variable to 4
+# This is needed to ensure efficient core usage.
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+minimap2 -t 2 -Y -I 1000G -d minimap2_spike_index merged_txps.fa
+
+minimap2 -t 2 -a -x map-ont -p 1.0 -N 100 minimap2_spike_index SRR6058582_1.fastq | samtools view -Sb > SRR6058582.bam
