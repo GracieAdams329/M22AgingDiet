@@ -12,9 +12,9 @@ gunzip Drosophila_melanogaster.BDGP6.32.103.gtf.gz
 #On Ubuntu
 gffread -w /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -g /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf
 
-#Align to the genome from ensembl and use the gtf from ensembl for StringTie
-#Script: MinimapStringtiecriptGracieVitC220224.sh
-------------------------------
+#Align to the gtf -> fasta from ENSEMBL and Salmon against it
+#Script: MinimapENSEMBLFAScriptGracieVitC220224.sh
+-------
 #!/bin/bash
 # Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
 #SBATCH --mem=8G
@@ -42,15 +42,43 @@ SampleArray=$(cat /fastdata/bop23ga/Gracie_VitC_220224/GracieVitC220224Conf.conf
 for g in ${SampleArray[@]}
 do
 #Aligment to genome using minimap2
-minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}.sam
-samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}_sorted.bam /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}.sam
+minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieENSEMBLFAOutput/${g}.sam
+samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieENSEMBLFAOutput/${g}_sorted.bam /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieENSEMBLFAOutput/${g}.sam
 done
 
-for g in ${SampleArray[@]}
-do
+#for g in ${SampleArray[@]}
+#do
 #StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
-stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}/${g}_stringtie.gtf /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}_sorted.bam
-done
-------------------------------
+#stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieENSEMBLFAOutput/${g}/${g}_stringtie.gtf /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieOutput/${g}_sorted.bam
+#done
+-------
 
-salmon quant -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -l A -a MinimapStringtieOutput/barcode13_sorted.bam -o salmon_quant/
+#Script: SalmonENSEMBLFAScriptGracieVitC220224.sh
+-------
+#!/bin/bash
+# Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
+#SBATCH --mem=8G
+# Request 2 cores
+#SBATCH --cpus-per-task=2
+# Email notifications
+#SBATCH --mail-user=gadams3@sheffield.ac.uk
+# Email notifications if the job fails
+#SBATCH --mail-type=ALL
+# Change job output log file name (default is slurmJOBID)
+#SBATCH --output=output.SalmonENSEMBLFAVitC_051124.out
+# Request more time (default is 8 hours)
+#SBATCH --time=24:00:00
+
+#Activate the repository
+#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
+source /usr/local/extras/Genomics/.bashrc
+
+# Set the OPENMP_NUM_THREADS environment variable to 4
+# This is needed to ensure efficient core usage.
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
+conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
+
+salmon quant -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -l A -a MinimapENSEMBLFAOutput/barcode13_sorted.bam -o salmon_quant_ENSEMBLFA/
+-------
