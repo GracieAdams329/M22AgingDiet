@@ -44,6 +44,8 @@ do
 #Aligment to genome using minimap2
 minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa /fastdata/bop23ga/Gracie_VitC_220224/fastq_pass/${g}_merge_trimmed.fastq > /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieENSEMBLFAOutput/${g}.sam
 samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieENSEMBLFAOutput/${g}_sorted.bam /fastdata/bop23ga/Gracie_VitC_220224/MinimapStringtieENSEMBLFAOutput/${g}.sam
+#Want unsorted bam for the --ont salmon option!
+samtools view /fastdata/bop23ga/Gracie_VitC_220224/MinimapENSEMBLFAOutput/${g}.sam -Sb > /fastdata/bop23ga/Gracie_VitC_220224/MinimapENSEMBLFAOutput/${g}.bam
 done
 
 #for g in ${SampleArray[@]}
@@ -80,5 +82,5 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
 conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
 
-salmon quant -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -l A -a MinimapENSEMBLFAOutput/barcode13_sorted.bam -o salmon_quant_ENSEMBLFA/
+salmon quant --ont -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -l A -a MinimapENSEMBLFAOutput/barcode13.bam -o salmon_quant_ENSEMBLFA_ontEM/
 -------
