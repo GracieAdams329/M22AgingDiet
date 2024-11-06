@@ -82,5 +82,13 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
 conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
 
-salmon quant --ont -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -l A -a MinimapENSEMBLFAOutput/barcode13.bam -o salmon_quant_ENSEMBLFA_ontEM/
+source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
+conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
+
+SampleArray=$(cat /fastdata/bop23ga/Gracie_VitC_220224/GracieVitC220224Conf.conf)
+
+for g in ${SampleArray[@]}
+do
+salmon quant --ont -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -l U -a MinimapENSEMBLFAOutput/${g}.bam -o salmon_quant_ENSEMBLFA/${g}_salmon/
+done
 -------
