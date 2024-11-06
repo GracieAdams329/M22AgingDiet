@@ -29,3 +29,5 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 minimap2 -t 2 -Y -I 1000G -d minimap2_spike_index merged_txps.fa
 
 minimap2 -t 2 -a -x map-ont -p 1.0 -N 100 minimap2_spike_index SRR6058582_1.fastq | samtools view -Sb > SRR6058582.bam
+
+salmon quant --ont -p 8 -t merged_txps.fa -l U -a SRR6058582.bam -o res_ONT_EM
