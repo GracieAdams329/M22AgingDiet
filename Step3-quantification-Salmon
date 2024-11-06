@@ -13,7 +13,8 @@ gunzip Drosophila_melanogaster.BDGP6.32.103.gtf.gz
 gffread -w /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.fa -g /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /mnt/z/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf
 
 #Align to the gtf -> fasta from ENSEMBL and Salmon against it
-#Script: MinimapENSEMBLFAScriptGracieVitC220224.sh
+#Script: MinimapSalmonENSEMBLFAScript_GracieVitC220224.sh
+#NOT YET SAVED AS THIS AND TESTED ON HPC
 -------
 #!/bin/bash
 # Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
