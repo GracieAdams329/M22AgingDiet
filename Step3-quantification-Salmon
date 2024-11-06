@@ -42,10 +42,10 @@ done
 source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
 conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
 
-#for g in ${SampleArray[@]}
-#do
+for g in ${SampleArray[@]}
+do
 #Get read counts with salmon
 salmon quant --ont -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l U -a /fastdata/bop23ga/Gracie_VitC_220224/MinimapSalmonENSEMBLcDNAOutput/${g}.bam -o /fastdata/bop23ga/Gracie_VitC_220224/MinimapSalmonENSEMBLcDNAOutput/${g}_salmonout/
 #If this doesn't work, try the gtf > fasta!
-#done
+done
 -------
