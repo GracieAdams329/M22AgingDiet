@@ -19,7 +19,7 @@ done
 #BARCODE TRIMMING
 #In fastq_pass
 ls >> barcodelist.txt
-#nano to edit and remove the ‘barcodelist.txt’ line at the bottom of the file
+#nano to edit and remove the ‘barcodelist.txt’ line at the top/bottom of the file and '_merge.fastq' from the end of each line
 barclist=$(cat barcodelist.txt)
 
 for g in ${barclist[@]}
