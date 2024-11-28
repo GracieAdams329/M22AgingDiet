@@ -23,6 +23,6 @@ ls >> barcodelist.txt
 barclist=$(cat barcodelist.txt)
 
 for g in ${barclist[@]}
-do /usr/local/extras/Genomics/apps/dorado/dorado-0.8.1-linux-x64/bin/dorado trim ${g}_merge.fastq > ${g}_merge_trimmed.fastq –emit-fastq
+do /usr/local/extras/Genomics/apps/dorado/dorado-0.8.1-linux-x64/bin/dorado trim ${g}_merge.fastq > ${g}_merge_trimmed.fastq –-emit-fastq
 done
 #Dorado default emits a bam file with more data but then this can’t be used by minimap2.
