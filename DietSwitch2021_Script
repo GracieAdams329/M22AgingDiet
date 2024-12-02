@@ -1,3 +1,7 @@
+#Combined the fastq files for each barcode as usual, then renamed them sample names for ease and trimmed barcodes using Dorado (see: https://github.com/GracieAdams329/ONT-RNASeq-Pipeline/blob/main/Step1-combine-trim-fastq)
+#Then run:
+SCRIPT NAME: MinimapStringtieSalmonScript_DS2021.sh
+-------
 #!/bin/bash
 # Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
 #SBATCH --mem=8G
@@ -50,3 +54,8 @@ do
 #Get read counts with salmon
 salmon quant --ont -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l U -a /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/${g}.bam -o /fastdata/bop23ga/DietSwitch2_8_2021/SalmonOut/${g}_salmonout/
 done
+-------
+#Copy across to shared drive:
+- merged and trmmed fastq
+- minimap outs
+- salmon outs
