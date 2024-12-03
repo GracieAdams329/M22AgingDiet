@@ -35,7 +35,7 @@ done
 
 for g in ${SampleArray[@]}
 do
-StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
+#StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
 #Merge with StringTie
 stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}/${g}_stringtie.gtf /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}_sorted.bam
 done
@@ -55,6 +55,19 @@ do
 salmon quant --ont -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l U -a /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/${g}.bam -o /fastdata/bop23ga/DietSwitch2_8_2021/SalmonOut/${g}_salmonout/
 done
 -------
+
+#The .ctab file made by StringTie to be used with the Ballgown R package use FPKM, whereas we want TPM (https://www.rna-seqblog.com/rpkm-fpkm-and-tpm-clearly-explained/) which is in the .gtf file.
+
+cd /fastdata/bop23ga/DietSwitch2_8_2021/
+barclist=$(cat samplelist.txt)
+
+for g in ${barclist[@]}
+do
+cd MinimapOut/${g}/
+grep -P "\ttranscript\t" ${g}_stringtie.gtf | cut -f9 | grep -P "FBtr" | awk '{gsub("\"","",$0);gsub(";","",$0);print $6,$15,$16}' > ../TPMFiles/${g}_TPM.txt
+cd /fastdata/bop23ga/DietSwitch2_8_2021/
+done
+
 #Copy across to shared drive:
 - merged and trmmed fastq
 - minimap outs
