@@ -29,7 +29,7 @@ SampleArray=$(cat /fastdata/bop23ga/DietSwitch2_8_2021/samplelist.txt)
 for g in ${SampleArray[@]}
 do
 #Aligment to genome using minimap2
-minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/${g}_merge_trimmed.fastq | samtools view -Sb > /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOu$
+minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/${g}_merge_trimmed.fastq | samtools view -Sb > /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}.bam
 samtools sort -@ 2 -m 4G -o /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}_sorted.bam /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}.bam
 done
 
@@ -43,7 +43,7 @@ done
 for g in ${SampleArray[@]}
 do
 #Aligment to transcriptome using minimap2 for salmon
-minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/${g}_merge_trimmed.fastq | samtools view -Sb > /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOu$
+minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/${g}_merge_trimmed.fastq | samtools view -Sb > /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/${g}.bam
 done
 
 source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
