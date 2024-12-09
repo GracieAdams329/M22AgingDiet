@@ -72,3 +72,39 @@ done
 - merged and trmmed fastq
 - minimap outs
 - salmon outs
+
+R SCRIPT
+-------
+library(ggplot2)
+
+setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
+
+salmon <- read.table('SalmonOut/Sample001_salmonout/quant.sf', header = TRUE)
+salmon <- salmon[ -c(2, 3, 5)]
+colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
+
+stringtie <- read.table('MinimapOut/TPMFiles/Sample001_TPM.txt')
+stringtie <- stringtie[ -2]
+colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
+colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
+
+TPM <- merge(salmon, stringtie, by = "Name")
+
+ggplot(TPM, aes(x = SalmonTPM, y = StringtieTPM)) +
+  geom_point()
+
+TPM$Salmon_over_Stringtie = TPM$SalmonTPM/TPM$StringtieTPM
+
+ggplot(TPM, aes(x = Name, y = Salmon_over_Stringtie)) +
+  geom_point()
+
+TPM$logSalmonTPM = log10(TPM$SalmonTPM)
+TPM$logStringtieTPM = log10(TPM$StringtieTPM)
+
+ggplot(TPM, aes(x = logSalmonTPM, y = logStringtieTPM)) +
+  geom_point()
+
+TPM$logSalmon_over_logStringtie = TPM$logSalmonTPM/TPM$logStringtieTPM
+
+ggplot(TPM, aes(x = Name, y = logSalmon_over_logStringtie)) +
+  geom_point()
