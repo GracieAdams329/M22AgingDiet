@@ -79,6 +79,7 @@ rm(list=ls())
 
 library(ggplot2)
 library(PerformanceAnalytics)
+library(dplyr)
 
 
 
@@ -124,7 +125,8 @@ setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
 samplelist <- read.table("samplelist_69.txt")
 samplelist = samplelist$V1
 
-overallTPM <- data.frame(Name=character())
+#Make transcripts variable to store all transcripts in all samples
+transcripts <- character()
 
 for(i in 1:length(samplelist))
 {
@@ -140,19 +142,35 @@ for(i in 1:length(samplelist))
  colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
  
  TPM <- merge(salmon, stringtie, by = "Name")
- TPM$Salmon_over_Stringtie = log(TPM$SalmonTPM/TPM$StringtieTPM)
- TPM <- TPM[ -c(2,3)]
- colnames(TPM)[colnames(TPM) == "Salmon_over_Stringtie"] <- paste("Salmon_over_Stringtie_", currentsample, sep = "")
  
- #Give TPM its own name ready to make one big dataset
- assign(paste("TPM_", currentsample, sep = ""), TPM)
+ #Fetch the transcripts from this sample's TPM dataframe
+ transcripts <- append(transcripts, TPM$Name)
 }
 
-#Merge into one large dataset
-overallTPM <- TPM_Sample001
-for(i in 2:length(samplelist))
+#Fetch unique transcripts out and make dataframe for merging
+overallTPM <- as.data.frame(unique(transcripts))
+colnames(overallTPM)[colnames(overallTPM) == "unique(transcripts)"] <- "Name"
+
+#Run loop to merge log(SalmonTPM/StringtieTPM) for all samples
+for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
-  overallTPM <- merge(overallTPM, paste("TPM_", currentsample, sep = ""), by = "Name")
+  
+  salmon <- read.table(paste('SalmonOut/', currentsample, '_salmonout/quant.sf', sep = ''), header = TRUE, fill = TRUE)
+  salmon <- salmon[ -c(2, 3, 5)]
+  colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
+  
+  stringtie <- read.table(paste('MinimapOut/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
+  stringtie <- stringtie[ -2]
+  colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
+  colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
+  
+  TPM <- merge(salmon, stringtie, by = "Name")
+  
+  TPM$Salmon_over_Stringtie = log(TPM$SalmonTPM/TPM$StringtieTPM)
+  TPM <- TPM[ -c(2,3)]
+  colnames(TPM)[colnames(TPM) == "Salmon_over_Stringtie"] <- paste("Salmon_over_Stringtie_", currentsample, sep = "")
+  
+  overallTPM <- merge(overallTPM, TPM, by = "Name", fill = TRUE)
 }
-#USING PASTE DOESN'T WORK WITHIN MERGE!
+#WE ARE LOSING ROWS THAT AREN'T IN DATASETS - NEED TO KEEP ALL ROWS FROM 'overallTPM$Name'.
