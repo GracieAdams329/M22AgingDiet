@@ -75,8 +75,15 @@ done
 
 R SCRIPT
 -------
-library(ggplot2)
+rm(list=ls())
 
+library(ggplot2)
+library(PerformanceAnalytics)
+
+
+
+##-------Checking method works for comparing one sample
+#Read in TPM from Salmon and StringTie
 setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
 
 salmon <- read.table('SalmonOut/Sample001_salmonout/quant.sf', header = TRUE)
@@ -90,21 +97,62 @@ colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
 
 TPM <- merge(salmon, stringtie, by = "Name")
 
+#Explore the data
 ggplot(TPM, aes(x = SalmonTPM, y = StringtieTPM)) +
   geom_point()
 
 TPM$Salmon_over_Stringtie = TPM$SalmonTPM/TPM$StringtieTPM
-
 ggplot(TPM, aes(x = Name, y = Salmon_over_Stringtie)) +
   geom_point()
 
 TPM$logSalmonTPM = log10(TPM$SalmonTPM)
 TPM$logStringtieTPM = log10(TPM$StringtieTPM)
-
 ggplot(TPM, aes(x = logSalmonTPM, y = logStringtieTPM)) +
   geom_point()
 
 TPM$logSalmon_over_logStringtie = TPM$logSalmonTPM/TPM$logStringtieTPM
-
 ggplot(TPM, aes(x = Name, y = logSalmon_over_logStringtie)) +
   geom_point()
+
+#Correlation plots
+chart.Correlation(TPM[,2:3], histogram=TRUE)
+
+
+
+##-------Loop to read in all samples and make a large dataframe for correlation plots
+setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
+samplelist <- read.table("samplelist_69.txt")
+samplelist = samplelist$V1
+
+overallTPM <- data.frame(Name=character())
+
+for(i in 1:length(samplelist))
+{
+ currentsample = samplelist[i]
+ 
+ salmon <- read.table(paste('SalmonOut/', currentsample, '_salmonout/quant.sf', sep = ''), header = TRUE, fill = TRUE)
+ salmon <- salmon[ -c(2, 3, 5)]
+ colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
+ 
+ stringtie <- read.table(paste('MinimapOut/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
+ stringtie <- stringtie[ -2]
+ colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
+ colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
+ 
+ TPM <- merge(salmon, stringtie, by = "Name")
+ TPM$Salmon_over_Stringtie = log(TPM$SalmonTPM/TPM$StringtieTPM)
+ TPM <- TPM[ -c(2,3)]
+ colnames(TPM)[colnames(TPM) == "Salmon_over_Stringtie"] <- paste("Salmon_over_Stringtie_", currentsample, sep = "")
+ 
+ #Give TPM its own name ready to make one big dataset
+ assign(paste("TPM_", currentsample, sep = ""), TPM)
+}
+
+#Merge into one large dataset
+overallTPM <- TPM_Sample001
+for(i in 2:length(samplelist))
+{
+  currentsample = samplelist[i]
+  overallTPM <- merge(overallTPM, paste("TPM_", currentsample, sep = ""), by = "Name")
+}
+#USING PASTE DOESN'T WORK WITHIN MERGE!
