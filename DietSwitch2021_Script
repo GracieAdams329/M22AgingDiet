@@ -171,9 +171,7 @@ for(i in 1:length(samplelist))
   TPM <- TPM[ -c(2,3)]
   colnames(TPM)[colnames(TPM) == "Salmon_over_Stringtie"] <- paste("Salmon_over_Stringtie_", currentsample, sep = "")
   
-  overallTPM <- merge(overallTPM, TPM, by = "Name", all.x = TRUE)
+  overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
 }
 
-untransc <- as.data.frame(unique(overallTPM$Name))
-length(which(duplicated(overallTPM$Name)))
-#WE ARE DUPLICATING MANY ROWS WITH MERGE - TRY LEFT_JOIN INSTEAD
+#Use relationships in left_join to ask which ones have multiple matches, in a separate loop
