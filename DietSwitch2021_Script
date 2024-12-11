@@ -160,7 +160,7 @@ for(i in 1:length(samplelist))
   salmon <- salmon[ -c(2, 3, 5)]
   colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
   
-  stringtie <- read.table(paste('MinimapOut/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
+  stringtie <- read.table(paste('Stringtie_e_option/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
   stringtie <- stringtie[ -2]
   colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
   colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
