@@ -37,7 +37,7 @@ for g in ${SampleArray[@]}
 do
 #StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
 #Merge with StringTie
-stringtie -p 2 -B -L -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}/${g}_stringtie.gtf /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}_sorted.bam
+stringtie -p 2 -B -L -e -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/DietSwitch2_8_2021/Stringtie_e_option/${g}/${g}_stringtie.gtf /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}_sorted.bam
 done
 
 for g in ${SampleArray[@]}
@@ -91,7 +91,7 @@ salmon <- read.table('SalmonOut/Sample001_salmonout/quant.sf', header = TRUE)
 salmon <- salmon[ -c(2, 3, 5)]
 colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
 
-stringtie <- read.table('MinimapOut/TPMFiles/Sample001_TPM.txt')
+stringtie <- read.table('Stringtie_e_option/TPMFiles/Sample001_TPM.txt')
 stringtie <- stringtie[ -2]
 colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
 colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
@@ -136,7 +136,7 @@ for(i in 1:length(samplelist))
  salmon <- salmon[ -c(2, 3, 5)]
  colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
  
- stringtie <- read.table(paste('MinimapOut/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
+ stringtie <- read.table(paste('Stringtie_e_option/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
  stringtie <- stringtie[ -2]
  colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
  colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
@@ -151,11 +151,6 @@ for(i in 1:length(samplelist))
 overallTPM <- as.data.frame(unique(transcripts))
 colnames(overallTPM)[colnames(overallTPM) == "unique(transcripts)"] <- "Name"
 
-#To investigate where duplicated rows are coming from, make variable to store info on no. dups/sample
-dups <- character()
-saldups <- character()
-stdups <- character()
-
 #Run loop to merge log(SalmonTPM/StringtieTPM) for all samples
 for(i in 1:length(samplelist))
 {
@@ -165,14 +160,10 @@ for(i in 1:length(samplelist))
   salmon <- salmon[ -c(2, 3, 5)]
   colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
   
-  saldups <- append(saldups, length(which(duplicated(salmon$Name))))
-  
   stringtie <- read.table(paste('MinimapOut/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
   stringtie <- stringtie[ -2]
   colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
   colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
-  
-  stdups <- append(stdups, length(which(duplicated(stringtie$Name))))
   
   TPM <- merge(salmon, stringtie, by = "Name")
   
@@ -180,7 +171,5 @@ for(i in 1:length(samplelist))
   TPM <- TPM[ -c(2,3)]
   colnames(TPM)[colnames(TPM) == "Salmon_over_Stringtie"] <- paste("Salmon_over_Stringtie_", currentsample, sep = "")
   
-  dups <- append(dups, length(which(duplicated(TPM$Name))))
-  
-  #overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
+  overallTPM <- left_join(overallTPM, TPM, by = "Name")
 }
