@@ -151,6 +151,11 @@ for(i in 1:length(samplelist))
 overallTPM <- as.data.frame(unique(transcripts))
 colnames(overallTPM)[colnames(overallTPM) == "unique(transcripts)"] <- "Name"
 
+#To investigate where duplicated rows are coming from, make variable to store info on no. dups/sample
+dups <- character()
+saldups <- character()
+stdups <- character()
+
 #Run loop to merge log(SalmonTPM/StringtieTPM) for all samples
 for(i in 1:length(samplelist))
 {
@@ -160,10 +165,14 @@ for(i in 1:length(samplelist))
   salmon <- salmon[ -c(2, 3, 5)]
   colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
   
+  saldups <- append(saldups, length(which(duplicated(salmon$Name))))
+  
   stringtie <- read.table(paste('MinimapOut/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
   stringtie <- stringtie[ -2]
   colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
   colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
+  
+  stdups <- append(stdups, length(which(duplicated(stringtie$Name))))
   
   TPM <- merge(salmon, stringtie, by = "Name")
   
@@ -171,7 +180,7 @@ for(i in 1:length(samplelist))
   TPM <- TPM[ -c(2,3)]
   colnames(TPM)[colnames(TPM) == "Salmon_over_Stringtie"] <- paste("Salmon_over_Stringtie_", currentsample, sep = "")
   
-  overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
+  dups <- append(dups, length(which(duplicated(TPM$Name))))
+  
+  #overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
 }
-
-#Use relationships in left_join to ask which ones have multiple matches, in a separate loop
