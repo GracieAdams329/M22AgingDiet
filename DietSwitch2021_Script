@@ -61,10 +61,11 @@ done
 cd /fastdata/bop23ga/DietSwitch2_8_2021/
 barclist=$(cat samplelist.txt)
 
+#Note that for the below code, if copied and pasted as a block it throws an error - make sure to type/copy and paste the individual lines!
 for g in ${barclist[@]}
 do
 cd Sringtie_e_option/${g}
-grep -P "\ttranscript\t" ${g}_stringtie.gtf | cut -f9 | grep -P "FBtr" | awk '{gsub("\"","",$0);gsub(";","",$0);print $6,$15,$16}' > ../TPMFiles/${g}_TPM.txt
+grep -P "\ttranscript\t" ${g}_stringtie.gtf | cut -f9 | grep -P "FBtr" | awk '{gsub("\"","",$0);gsub(";","",$0);print $4,$11,$12}' > ../TPMFiles/${g}_TPM.txt
 cd /fastdata/bop23ga/DietSwitch2_8_2021/
 done
 
