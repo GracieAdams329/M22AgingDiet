@@ -171,5 +171,6 @@ for(i in 1:length(samplelist))
   TPM <- TPM[ -c(2,3)]
   colnames(TPM)[colnames(TPM) == "Salmon_over_Stringtie"] <- paste("Salmon_over_Stringtie_", currentsample, sep = "")
   
-  overallTPM <- left_join(overallTPM, TPM, by = "Name")
+  overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
+ #Just takes the first value for the duplicated transcripts - must be an error in StringTie but it's in so few transcripts we can ignore for now.
 }
