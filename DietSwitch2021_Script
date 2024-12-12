@@ -83,6 +83,10 @@ library(dplyr)
 
 
 
+
+
+
+
 ##-------Checking method works for comparing one sample
 #Read in TPM from Salmon and StringTie
 setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
@@ -91,7 +95,7 @@ salmon <- read.table('SalmonOut/Sample001_salmonout/quant.sf', header = TRUE)
 salmon <- salmon[ -c(2, 3, 5)]
 colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
 
-stringtie <- read.table('Stringtie_e_option/TPMFiles/Sample001_TPM.txt')
+stringtie <- read.table('Stringtie_e_option/TPMFiles/Sample001_TPM.txt', fill = TRUE)
 stringtie <- stringtie[ -2]
 colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
 colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
@@ -120,6 +124,10 @@ chart.Correlation(TPM[,2:3], histogram=TRUE)
 
 
 
+
+
+
+
 ##-------Loop to read in all samples and make a large dataframe for correlation plots
 setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
 samplelist <- read.table("samplelist_69.txt")
@@ -128,30 +136,6 @@ samplelist = samplelist$V1
 #Make transcripts variable to store all transcripts in all samples
 transcripts <- character()
 
-for(i in 1:length(samplelist))
-{
- currentsample = samplelist[i]
- 
- salmon <- read.table(paste('SalmonOut/', currentsample, '_salmonout/quant.sf', sep = ''), header = TRUE, fill = TRUE)
- salmon <- salmon[ -c(2, 3, 5)]
- colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
- 
- stringtie <- read.table(paste('Stringtie_e_option/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
- stringtie <- stringtie[ -2]
- colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
- colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
- 
- TPM <- merge(salmon, stringtie, by = "Name")
- 
- #Fetch the transcripts from this sample's TPM dataframe
- transcripts <- append(transcripts, TPM$Name)
-}
-
-#Fetch unique transcripts out and make dataframe for merging
-overallTPM <- as.data.frame(unique(transcripts))
-colnames(overallTPM)[colnames(overallTPM) == "unique(transcripts)"] <- "Name"
-
-#Run loop to merge log(SalmonTPM/StringtieTPM) for all samples
 for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
@@ -167,10 +151,52 @@ for(i in 1:length(samplelist))
   
   TPM <- merge(salmon, stringtie, by = "Name")
   
-  TPM$Salmon_over_Stringtie = log(TPM$SalmonTPM/TPM$StringtieTPM)
-  TPM <- TPM[ -c(2,3)]
-  colnames(TPM)[colnames(TPM) == "Salmon_over_Stringtie"] <- paste("Salmon_over_Stringtie_", currentsample, sep = "")
-  
-  overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
- #Just takes the first value for the duplicated transcripts - must be an error in StringTie but it's in so few transcripts we can ignore for now.
+  #Fetch the transcripts from this sample's TPM dataframe
+  transcripts <- append(transcripts, TPM$Name)
 }
+
+#Fetch unique transcripts out and make dataframe for merging
+overallTPM <- as.data.frame(unique(transcripts))
+colnames(overallTPM)[colnames(overallTPM) == "unique(transcripts)"] <- "Name"
+
+stdups <- character()
+
+#Run loop to merge log(SalmonTPM/StringtieTPM) for all samples
+for(i in 1:length(samplelist))
+{
+  currentsample = samplelist[i]
+  
+  salmon <- read.table(paste('SalmonOut/', currentsample, '_salmonout/quant.sf', sep = ''), header = TRUE, fill = TRUE)
+  salmon <- salmon[ -c(2, 3, 5)]
+  colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
+  
+  stringtie <- read.table(paste('Stringtie_e_option/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
+  stringtie <- stringtie[ -2]
+  colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
+  colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
+  
+  stdups <- append(stdups, length(which(duplicated(stringtie$Name))))
+  
+  TPM <- merge(salmon, stringtie, by = "Name")
+  colnames(TPM)[colnames(TPM) == "SalmonTPM"] <- paste("SalmonTPM_", currentsample, sep = "")
+  colnames(TPM)[colnames(TPM) == "StringtieTPM"] <- paste("StringtieTPM_", currentsample, sep = "")
+
+  overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
+  #Just takes the first value for the duplicated transcripts - must be an error in StringTie but it's in so few transcripts we can ignore for now.
+}
+
+stdups
+#To check how many duplications there were - should be very few.
+
+
+
+
+
+
+
+##-------Create correlation table
+#Example from PerformanceAnalytics PDF:
+data(managers)
+ctable <- table.Correlation(managers[,1:6], managers[,8, drop = FALSE], conf.level = .99)
+dotchart(ctable[,1], labels = rownames(ctable), xlim = c(-1,1))
+#Can tell it to compare a set of columns to another set and plot the correlations for the comparisons!
