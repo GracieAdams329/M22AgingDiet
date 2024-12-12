@@ -36,7 +36,6 @@ done
 for g in ${SampleArray[@]}
 do
 #StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
-#Merge with StringTie
 stringtie -p 2 -B -L -e -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/DietSwitch2_8_2021/Stringtie_e_option/${g}/${g}_stringtie.gtf /fastdata/bop23ga/DietSwitch2_8_2021/MinimapOut/${g}_sorted.bam
 done
 
