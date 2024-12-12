@@ -63,7 +63,7 @@ barclist=$(cat samplelist.txt)
 
 for g in ${barclist[@]}
 do
-cd MinimapOut/${g}/
+cd Sringtie_e_option/${g}
 grep -P "\ttranscript\t" ${g}_stringtie.gtf | cut -f9 | grep -P "FBtr" | awk '{gsub("\"","",$0);gsub(";","",$0);print $6,$15,$16}' > ../TPMFiles/${g}_TPM.txt
 cd /fastdata/bop23ga/DietSwitch2_8_2021/
 done
