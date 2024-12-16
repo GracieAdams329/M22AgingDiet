@@ -194,6 +194,22 @@ stdups
 
 
 
-##-------Create correlation table
+##-------Investigating how the samples correlate
 corrtable <- cor(overallTPM, use = "complete.obs")
-corrplot(corrtable[1:45,1:45], method = "number")
+#This produces a similarity matrix, as the similar values are 1. A dissimilarity matrix is the opposite!
+
+TPMagnes <- agnes(x = corrtable, diss = FALSE)
+plot(TPMagnes, which.plots = 2, main = "Dendrogram of Salmon and StringTie TPM value clustering", sub = "TPMs for each transcript correlated using cor then clustered with agnes")
+#This gives a dendrogram showing Salmon and StringTie seem to cluster with themselves.
+
+#To look at correlation values from cor:
+ODD <- seq(from = 1, to = 138, by = 2)
+EVEN <- seq(from = 2, to = 138, by = 2)
+
+setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/')
+
+pdf("corrplots_Salmon_StringTie_TPM_correlations.pdf", width = 33, height = 33)
+corrplot(corrtable[ODD,ODD], method = "number")
+corrplot(corrtable[EVEN,EVEN], method = "number")
+corrplot(corrtable[ODD,EVEN], method = "number")
+dev.off()
