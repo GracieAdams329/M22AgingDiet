@@ -195,8 +195,5 @@ stdups
 
 
 ##-------Create correlation table
-#Example from PerformanceAnalytics PDF:
-data(managers)
-ctable <- table.Correlation(managers[,1:6], managers[,8, drop = FALSE], conf.level = .99)
-dotchart(ctable[,1], labels = rownames(ctable), xlim = c(-1,1))
-#Can tell it to compare a set of columns to another set and plot the correlations for the comparisons!
+corrtable <- cor(overallTPM, use = "complete.obs")
+corrplot(corrtable[1:45,1:45], method = "number")
