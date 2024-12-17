@@ -195,6 +195,9 @@ stdups
 
 
 ##-------Investigating how the samples correlate
+setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/')
+#Ready to save plots etc.
+
 corrtable <- cor(overallTPM, use = "complete.obs")
 #This produces a similarity matrix, as the similar values are 1. A dissimilarity matrix is the opposite!
 
@@ -205,8 +208,6 @@ plot(TPMagnes, which.plots = 2, main = "Dendrogram of Salmon and StringTie TPM v
 #To look at correlation values from cor:
 ODD <- seq(from = 1, to = 138, by = 2)
 EVEN <- seq(from = 2, to = 138, by = 2)
-
-setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/')
 
 pdf("corrplots_Salmon_StringTie_TPM_correlations.pdf", width = 33, height = 33)
 corrplot(corrtable[ODD,ODD], method = "number")
@@ -220,3 +221,6 @@ hist(corrtable[ODD,ODD], main = "Histogram of correlation coefficients for Salmo
 hist(corrtable[EVEN,EVEN], main = "Histogram of correlation coefficients for StringTie vs StringTie TPMs")
 hist(corrtable[ODD,EVEN], main = "Histogram of correlation coefficients for Salmon vs StringTie TPMs")
 dev.off()
+
+#To get off diagonal matrix
+offdiag_corrtable <- corrtable[row(corrtable) < col(corrtable)]
