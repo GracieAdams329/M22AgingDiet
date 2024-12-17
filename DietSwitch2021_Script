@@ -215,12 +215,13 @@ corrplot(corrtable[EVEN,EVEN], method = "number")
 corrplot(corrtable[ODD,EVEN], method = "number")
 dev.off()
 
-#Histogram of correlation coefficients
-pdf("histogram_Salmon_StringTie_TPM_correlations.pdf", width = 10, height = 10)
-hist(corrtable[ODD,ODD], main = "Histogram of correlation coefficients for Salmon vs Salmon TPMs")
-hist(corrtable[EVEN,EVEN], main = "Histogram of correlation coefficients for StringTie vs StringTie TPMs")
-hist(corrtable[ODD,EVEN], main = "Histogram of correlation coefficients for Salmon vs StringTie TPMs")
-dev.off()
+#To get the off-diagonal matrix only:
+offdiagcorr <- corrtable
+offdiagcorr[upper.tri(offdiagcorr, diag = TRUE)] <- NA
 
-#To get off diagonal matrix
-offdiag_corrtable <- corrtable[row(corrtable) < col(corrtable)]
+#Histogram of off-diagonal correlation coefficients (removes repeats and samples correlated to themselves)
+pdf("histogram_Salmon_StringTie_TPM_correlations.pdf", width = 10, height = 10)
+hist(offdiagcorr[ODD,ODD], main = "Histogram of off-diagonal correlation coefficients for Salmon vs Salmon TPMs")
+hist(offdiagcorr[EVEN,EVEN], main = "Histogram of off-diagonal correlation coefficients for StringTie vs StringTie TPMs")
+hist(offdiagcorr[ODD,EVEN], main = "Histogram of off-diagonal correlation coefficients for Salmon vs StringTie TPMs")
+dev.off()
