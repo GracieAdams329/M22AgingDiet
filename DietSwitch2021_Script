@@ -78,8 +78,10 @@ R SCRIPT
 rm(list=ls())
 
 library(ggplot2)
-library(PerformanceAnalytics)
 library(dplyr)
+library(tidyverse)
+library(corrplot)
+library(cluster)
 
 
 
@@ -87,40 +89,40 @@ library(dplyr)
 
 
 
-##-------Checking method works for comparing one sample
-#Read in TPM from Salmon and StringTie
-setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
-
-salmon <- read.table('SalmonOut/Sample001_salmonout/quant.sf', header = TRUE)
-salmon <- salmon[ -c(2, 3, 5)]
-colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
-
-stringtie <- read.table('Stringtie_e_option/TPMFiles/Sample001_TPM.txt', fill = TRUE)
-stringtie <- stringtie[ -2]
-colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
-colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
-
-TPM <- merge(salmon, stringtie, by = "Name")
-
-#Explore the data
-ggplot(TPM, aes(x = SalmonTPM, y = StringtieTPM)) +
-  geom_point()
-
-TPM$Salmon_over_Stringtie = TPM$SalmonTPM/TPM$StringtieTPM
-ggplot(TPM, aes(x = Name, y = Salmon_over_Stringtie)) +
-  geom_point()
-
-TPM$logSalmonTPM = log10(TPM$SalmonTPM)
-TPM$logStringtieTPM = log10(TPM$StringtieTPM)
-ggplot(TPM, aes(x = logSalmonTPM, y = logStringtieTPM)) +
-  geom_point()
-
-TPM$logSalmon_over_logStringtie = TPM$logSalmonTPM/TPM$logStringtieTPM
-ggplot(TPM, aes(x = Name, y = logSalmon_over_logStringtie)) +
-  geom_point()
-
-#Correlation plots
-chart.Correlation(TPM[,2:3], histogram=TRUE)
+# ##-------Checking method works for comparing one sample
+# #Read in TPM from Salmon and StringTie
+# setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
+# 
+# salmon <- read.table('SalmonOut/Sample001_salmonout/quant.sf', header = TRUE)
+# salmon <- salmon[ -c(2, 3, 5)]
+# colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
+# 
+# stringtie <- read.table('Stringtie_e_option/TPMFiles/Sample001_TPM.txt', fill = TRUE)
+# stringtie <- stringtie[ -2]
+# colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
+# colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
+# 
+# TPM <- merge(salmon, stringtie, by = "Name")
+# 
+# #Explore the data
+# ggplot(TPM, aes(x = SalmonTPM, y = StringtieTPM)) +
+#   geom_point()
+# 
+# TPM$Salmon_over_Stringtie = TPM$SalmonTPM/TPM$StringtieTPM
+# ggplot(TPM, aes(x = Name, y = Salmon_over_Stringtie)) +
+#   geom_point()
+# 
+# TPM$logSalmonTPM = log10(TPM$SalmonTPM)
+# TPM$logStringtieTPM = log10(TPM$StringtieTPM)
+# ggplot(TPM, aes(x = logSalmonTPM, y = logStringtieTPM)) +
+#   geom_point()
+# 
+# TPM$logSalmon_over_logStringtie = TPM$logSalmonTPM/TPM$logStringtieTPM
+# ggplot(TPM, aes(x = Name, y = logSalmon_over_logStringtie)) +
+#   geom_point()
+# 
+# #Correlation plots
+# chart.Correlation(TPM[,2:3], histogram=TRUE)
 
 
 
@@ -161,7 +163,7 @@ colnames(overallTPM)[colnames(overallTPM) == "unique(transcripts)"] <- "Name"
 
 stdups <- character()
 
-#Run loop to merge log(SalmonTPM/StringtieTPM) for all samples
+#Run loop to merge for all samples
 for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
@@ -169,21 +171,35 @@ for(i in 1:length(samplelist))
   salmon <- read.table(paste('SalmonOut/', currentsample, '_salmonout/quant.sf', sep = ''), header = TRUE, fill = TRUE)
   salmon <- salmon[ -c(2, 3, 5)]
   colnames(salmon)[colnames(salmon) == "TPM"] <- "SalmonTPM"
+  salmon <- subset(salmon, SalmonTPM > 0)
+  salmon$logSalmonTPM <- log10(salmon$SalmonTPM)
+  salmon <- salmon[ -2]
   
   stringtie <- read.table(paste('Stringtie_e_option/TPMFiles/', currentsample, '_TPM.txt', sep = ''), fill = TRUE)
   stringtie <- stringtie[ -2]
   colnames(stringtie)[colnames(stringtie) == "V1"] <- "Name"
   colnames(stringtie)[colnames(stringtie) == "V3"] <- "StringtieTPM"
+  stringtie <- subset(stringtie, StringtieTPM > 0)
+  stringtie$logStringtieTPM <- log10(stringtie$StringtieTPM)
+  stringtie <- stringtie[ -2]
   
   stdups <- append(stdups, length(which(duplicated(stringtie$Name))))
   
   TPM <- merge(salmon, stringtie, by = "Name")
-  colnames(TPM)[colnames(TPM) == "SalmonTPM"] <- paste("SalmonTPM_", currentsample, sep = "")
-  colnames(TPM)[colnames(TPM) == "StringtieTPM"] <- paste("StringtieTPM_", currentsample, sep = "")
-
+  colnames(TPM)[colnames(TPM) == "logSalmonTPM"] <- paste("logSalmonTPM_", currentsample, sep = "")
+  colnames(TPM)[colnames(TPM) == "logStringtieTPM"] <- paste("logStringtieTPM_", currentsample, sep = "")
+  
+  #Remove lowest 10% of reads
+  # n <- nrow(TPM)
+  # k <- n/1
+  # https://statisticsglobe.com/remove-values-lesser-greater-than-5th-95th-percentiles-r
+  
   overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
   #Just takes the first value for the duplicated transcripts - must be an error in StringTie but it's in so few transcripts we can ignore for now.
 }
+
+#Convert gene name to rownames
+overallTPM <- column_to_rownames(overallTPM, var = "Name")
 
 stdups
 #To check how many duplications there were - should be very few.
@@ -209,15 +225,31 @@ plot(TPMagnes, which.plots = 2, main = "Dendrogram of Salmon and StringTie TPM v
 ODD <- seq(from = 1, to = 138, by = 2)
 EVEN <- seq(from = 2, to = 138, by = 2)
 
+#Correlations visualised with corrplot
 pdf("corrplots_Salmon_StringTie_TPM_correlations.pdf", width = 33, height = 33)
 corrplot(corrtable[ODD,ODD], method = "number")
 corrplot(corrtable[EVEN,EVEN], method = "number")
 corrplot(corrtable[ODD,EVEN], method = "number")
 dev.off()
 
+#Correlation histograms for entire similarity matrix
+mean(corrtable[ODD,ODD], na.rm = TRUE)
+mean(corrtable[EVEN,EVEN], na.rm = TRUE)
+mean(corrtable[ODD,EVEN], na.rm = TRUE)
+
+median(corrtable[ODD,ODD], na.rm = TRUE)
+median(corrtable[EVEN,EVEN], na.rm = TRUE)
+median(corrtable[ODD,EVEN], na.rm = TRUE)
+
+pdf("histogram_Salmon_StringTie_TPM_correlations.pdf", width = 10, height = 10)
+hist(corrtable[ODD,ODD], main = "Histogram of correlation coefficients for Salmon vs Salmon TPMs",  sub = "mean = X, median = X")
+hist(corrtable[EVEN,EVEN], main = "Histogram of correlation coefficients for StringTie vs StringTie TPMs", sub = "mean = X, median = X")
+hist(corrtable[ODD,EVEN], main = "Histogram of correlation coefficients for Salmon vs StringTie TPMs", sub = "mean = X, median = X")
+dev.off()
+
 #To get the off-diagonal matrix only:
 offdiagcorr <- corrtable
-offdiagcorr[upper.tri(offdiagcorr, diag = TRUE)] <- NA
+offdiagcorr[lower.tri(offdiagcorr, diag = TRUE)] <- NA
 
 mean(offdiagcorr[ODD,ODD], na.rm = TRUE)
 mean(offdiagcorr[EVEN,EVEN], na.rm = TRUE)
@@ -228,8 +260,8 @@ median(offdiagcorr[EVEN,EVEN], na.rm = TRUE)
 median(offdiagcorr[ODD,EVEN], na.rm = TRUE)
 
 #Histogram of off-diagonal correlation coefficients (removes repeats and samples correlated to themselves)
-pdf("histogram_Salmon_StringTie_TPM_correlations.pdf", width = 10, height = 10)
+pdf("histogram_Salmon_StringTie_TPM_correlations_uppertri.pdf", width = 10, height = 10)
 hist(offdiagcorr[ODD,ODD], main = "Histogram of off-diagonal correlation coefficients for Salmon vs Salmon TPMs", sub = "mean = 0.898, median = 0.910")
 hist(offdiagcorr[EVEN,EVEN], main = "Histogram of off-diagonal correlation coefficients for StringTie vs StringTie TPMs", sub = "mean = 0.904, median = 0.914")
-hist(offdiagcorr[ODD,EVEN], main = "Histogram of off-diagonal correlation coefficients for Salmon vs StringTie TPMs", sub = "mean = 0.861, median = 0.872")
+hist(offdiagcorr[ODD,EVEN], main = "Histogram of off-diagonal correlation coefficients for Salmon vs StringTie TPMs", sub = "mean = 0.866, median = 0.876")
 dev.off()
