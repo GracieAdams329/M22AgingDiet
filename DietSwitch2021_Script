@@ -219,9 +219,17 @@ dev.off()
 offdiagcorr <- corrtable
 offdiagcorr[upper.tri(offdiagcorr, diag = TRUE)] <- NA
 
+mean(offdiagcorr[ODD,ODD], na.rm = TRUE)
+mean(offdiagcorr[EVEN,EVEN], na.rm = TRUE)
+mean(offdiagcorr[ODD,EVEN], na.rm = TRUE)
+
+median(offdiagcorr[ODD,ODD], na.rm = TRUE)
+median(offdiagcorr[EVEN,EVEN], na.rm = TRUE)
+median(offdiagcorr[ODD,EVEN], na.rm = TRUE)
+
 #Histogram of off-diagonal correlation coefficients (removes repeats and samples correlated to themselves)
 pdf("histogram_Salmon_StringTie_TPM_correlations.pdf", width = 10, height = 10)
-hist(offdiagcorr[ODD,ODD], main = "Histogram of off-diagonal correlation coefficients for Salmon vs Salmon TPMs")
-hist(offdiagcorr[EVEN,EVEN], main = "Histogram of off-diagonal correlation coefficients for StringTie vs StringTie TPMs")
-hist(offdiagcorr[ODD,EVEN], main = "Histogram of off-diagonal correlation coefficients for Salmon vs StringTie TPMs")
+hist(offdiagcorr[ODD,ODD], main = "Histogram of off-diagonal correlation coefficients for Salmon vs Salmon TPMs", sub = "mean = 0.898, median = 0.910")
+hist(offdiagcorr[EVEN,EVEN], main = "Histogram of off-diagonal correlation coefficients for StringTie vs StringTie TPMs", sub = "mean = 0.904, median = 0.914")
+hist(offdiagcorr[ODD,EVEN], main = "Histogram of off-diagonal correlation coefficients for Salmon vs StringTie TPMs", sub = "mean = 0.861, median = 0.872")
 dev.off()
