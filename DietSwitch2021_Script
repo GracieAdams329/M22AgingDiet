@@ -281,21 +281,21 @@ dev.off()
 setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
 samplelist <- read.table("samplelist_69.txt")
 
-allcovsums <- samplelist
-allcovsums$sumcov = NA
-colnames(allcovsums)[colnames(allcovsums) == "V1"] <- "Sample"
+allcovsums <- data.frame(Sample = character(),
+                            covsum = integer())
 
 samplelist = samplelist$V1
 
 #Loop to fetch sum(t_data.ctab$cov) (cov is per-base coverage for the transcript) for each sample
-#for(i in 1:length(samplelist))
-
-  currentsample = samplelist[1]
+for(i in 1:length(samplelist))
+{
+  currentsample = samplelist[i]
   tdat <- read.table(paste('Stringtie_e_option/', currentsample, '/t_data.ctab', sep = ''), header = TRUE, fill = TRUE)
   covsum <- as.data.frame(sum(tdat$cov))
   covsum$Sample = paste(currentsample)
   colnames(covsum)[colnames(covsum) == "sum(tdat$cov)"] <- "sumcov"
   covsum <- covsum[,c(2,1)]
-  allcovsums <- left_join(allcovsums, covsum, by = "Sample") 
+  allcovsums <- rbind(allcovsums, covsum)
+}
 
 ____________________________________________________________________________________________________________________________________________________________________________________
