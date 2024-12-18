@@ -185,14 +185,20 @@ for(i in 1:length(samplelist))
   
   stdups <- append(stdups, length(which(duplicated(stringtie$Name))))
   
+  #Remove lowest and highest 5% of reads
+  sal_quantile <- quantile(salmon$logSalmonTPM, c(0.05, 0.95))
+  sal_quantile
+  salmon <- salmon[salmon$logSalmonTPM > sal_quantile[1] &
+                     salmon$logSalmonTPM < sal_quantile[2], ]
+  
+  st_quantile <- quantile(stringtie$logStringtieTPM, c(0.05, 0.95))
+  st_quantile
+  stringtie <- stringtie[stringtie$logStringtieTPM > st_quantile[1] &
+                           stringtie$logStringtieTPM < st_quantile[2], ]
+  
   TPM <- merge(salmon, stringtie, by = "Name")
   colnames(TPM)[colnames(TPM) == "logSalmonTPM"] <- paste("logSalmonTPM_", currentsample, sep = "")
   colnames(TPM)[colnames(TPM) == "logStringtieTPM"] <- paste("logStringtieTPM_", currentsample, sep = "")
-  
-  #Remove lowest 10% of reads
-  # n <- nrow(TPM)
-  # k <- n/1
-  # https://statisticsglobe.com/remove-values-lesser-greater-than-5th-95th-percentiles-r
   
   overallTPM <- left_join(overallTPM, TPM, by = "Name", keep = FALSE, multiple = "first")
   #Just takes the first value for the duplicated transcripts - must be an error in StringTie but it's in so few transcripts we can ignore for now.
@@ -220,48 +226,49 @@ corrtable <- cor(overallTPM, use = "complete.obs")
 TPMagnes <- agnes(x = corrtable, diss = FALSE)
 plot(TPMagnes, which.plots = 2, main = "Dendrogram of Salmon and StringTie TPM value clustering", sub = "TPMs for each transcript correlated using cor then clustered with agnes")
 #This gives a dendrogram showing Salmon and StringTie seem to cluster with themselves.
+#Save as png.
 
 #To look at correlation values from cor:
 ODD <- seq(from = 1, to = 138, by = 2)
 EVEN <- seq(from = 2, to = 138, by = 2)
 
 #Correlations visualised with corrplot
-pdf("corrplots_Salmon_StringTie_TPM_correlations.pdf", width = 33, height = 33)
+pdf("corrplots_Salmon_StringTie_TPM_correlations_minus5and95p.pdf", width = 33, height = 33)
 corrplot(corrtable[ODD,ODD], method = "number")
 corrplot(corrtable[EVEN,EVEN], method = "number")
 corrplot(corrtable[ODD,EVEN], method = "number")
 dev.off()
 
 #Correlation histograms for entire similarity matrix
-mean(corrtable[ODD,ODD], na.rm = TRUE)
-mean(corrtable[EVEN,EVEN], na.rm = TRUE)
-mean(corrtable[ODD,EVEN], na.rm = TRUE)
+salmean <- round(mean(corrtable[ODD,ODD], na.rm = TRUE), digits = 3)
+stmean <- round(mean(corrtable[EVEN,EVEN], na.rm = TRUE), digits = 3)
+bothmean <- round(mean(corrtable[ODD,EVEN], na.rm = TRUE), digits = 3)
 
-median(corrtable[ODD,ODD], na.rm = TRUE)
-median(corrtable[EVEN,EVEN], na.rm = TRUE)
-median(corrtable[ODD,EVEN], na.rm = TRUE)
+salmed <- round(median(corrtable[ODD,ODD], na.rm = TRUE), digits = 3)
+stmed <- round(median(corrtable[EVEN,EVEN], na.rm = TRUE), digits = 3)
+bothmed <- round(median(corrtable[ODD,EVEN], na.rm = TRUE), digits = 3)
 
-pdf("histogram_Salmon_StringTie_TPM_correlations.pdf", width = 10, height = 10)
-hist(corrtable[ODD,ODD], main = "Histogram of correlation coefficients for Salmon vs Salmon TPMs",  sub = "mean = X, median = X")
-hist(corrtable[EVEN,EVEN], main = "Histogram of correlation coefficients for StringTie vs StringTie TPMs", sub = "mean = X, median = X")
-hist(corrtable[ODD,EVEN], main = "Histogram of correlation coefficients for Salmon vs StringTie TPMs", sub = "mean = X, median = X")
+pdf("histogram_Salmon_StringTie_TPM_correlations_minus5and95p.pdf", width = 10, height = 10)
+hist(corrtable[ODD,ODD], main = "Histogram of correlation coefficients for Salmon vs Salmon TPMs",  sub = paste("mean =", salmean, "median =", salmed, sep = " "))
+hist(corrtable[EVEN,EVEN], main = "Histogram of correlation coefficients for StringTie vs StringTie TPMs", sub = paste("mean =", stmean, "median =", stmed, sep = " "))
+hist(corrtable[ODD,EVEN], main = "Histogram of correlation coefficients for Salmon vs StringTie TPMs", sub = paste("mean =", bothmean, "median =", bothmed, sep = " "))
 dev.off()
 
 #To get the off-diagonal matrix only:
 offdiagcorr <- corrtable
 offdiagcorr[lower.tri(offdiagcorr, diag = TRUE)] <- NA
 
-mean(offdiagcorr[ODD,ODD], na.rm = TRUE)
-mean(offdiagcorr[EVEN,EVEN], na.rm = TRUE)
-mean(offdiagcorr[ODD,EVEN], na.rm = TRUE)
+salmean <- round(mean(offdiagcorr[ODD,ODD], na.rm = TRUE), digits = 3)
+stmean <- round(mean(offdiagcorr[EVEN,EVEN], na.rm = TRUE), digits = 3)
+bothmean <- round(mean(offdiagcorr[ODD,EVEN], na.rm = TRUE), digits = 3)
 
-median(offdiagcorr[ODD,ODD], na.rm = TRUE)
-median(offdiagcorr[EVEN,EVEN], na.rm = TRUE)
-median(offdiagcorr[ODD,EVEN], na.rm = TRUE)
+salmed <- round(median(offdiagcorr[ODD,ODD], na.rm = TRUE), digits = 3)
+stmed <- round(median(offdiagcorr[EVEN,EVEN], na.rm = TRUE), digits = 3)
+bothmed <- round(median(offdiagcorr[ODD,EVEN], na.rm = TRUE), digits = 3)
 
 #Histogram of off-diagonal correlation coefficients (removes repeats and samples correlated to themselves)
-pdf("histogram_Salmon_StringTie_TPM_correlations_uppertri.pdf", width = 10, height = 10)
-hist(offdiagcorr[ODD,ODD], main = "Histogram of off-diagonal correlation coefficients for Salmon vs Salmon TPMs", sub = "mean = 0.898, median = 0.910")
-hist(offdiagcorr[EVEN,EVEN], main = "Histogram of off-diagonal correlation coefficients for StringTie vs StringTie TPMs", sub = "mean = 0.904, median = 0.914")
-hist(offdiagcorr[ODD,EVEN], main = "Histogram of off-diagonal correlation coefficients for Salmon vs StringTie TPMs", sub = "mean = 0.866, median = 0.876")
+pdf("histogram_Salmon_StringTie_TPM_correlations_uppertri_minus5and95p.pdf", width = 10, height = 10)
+hist(offdiagcorr[ODD,ODD], main = "Histogram of off-diagonal correlation coefficients for Salmon vs Salmon TPMs", sub = paste("mean =", salmean, "median =", salmed, sep = " "))
+hist(offdiagcorr[EVEN,EVEN], main = "Histogram of off-diagonal correlation coefficients for StringTie vs StringTie TPMs", sub = paste("mean =", stmean, "median =", stmed, sep = " "))
+hist(offdiagcorr[ODD,EVEN], main = "Histogram of off-diagonal correlation coefficients for Salmon vs StringTie TPMs", sub = paste("mean =", bothmean, "median =", bothmed, sep = " "))
 dev.off()
