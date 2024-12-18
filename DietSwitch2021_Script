@@ -73,12 +73,10 @@ done
 - minimap outs
 - salmon outs
 ____________________________________________________________________________________________________________________________________________________________________________________
-R SCRIPT
+R SCRIPT: SalmonvsStringtieTPM.R
 -------
 rm(list=ls())
 
-library(ggplot2)
-library(dplyr)
 library(tidyverse)
 library(corrplot)
 library(cluster)
@@ -272,10 +270,32 @@ hist(offdiagcorr[ODD,ODD], main = "Histogram of off-diagonal correlation coeffic
 hist(offdiagcorr[EVEN,EVEN], main = "Histogram of off-diagonal correlation coefficients for StringTie vs StringTie TPMs", sub = paste("mean =", stmean, "median =", stmed, sep = " "))
 hist(offdiagcorr[ODD,EVEN], main = "Histogram of off-diagonal correlation coefficients for Salmon vs StringTie TPMs", sub = paste("mean =", bothmean, "median =", bothmed, sep = " "))
 dev.off()
+
+
+
+
+
+
+
+##-------Compare Salmon and StringTie counts per sample to minimap2 mapped reads
+setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
+samplelist <- read.table("samplelist_69.txt")
+
+allcovsums <- samplelist
+allcovsums$sumcov = NA
+colnames(allcovsums)[colnames(allcovsums) == "V1"] <- "Sample"
+
+samplelist = samplelist$V1
+
+#Loop to fetch sum(t_data.ctab$cov) (cov is per-base coverage for the transcript) for each sample
+#for(i in 1:length(samplelist))
+
+  currentsample = samplelist[1]
+  tdat <- read.table(paste('Stringtie_e_option/', currentsample, '/t_data.ctab', sep = ''), header = TRUE, fill = TRUE)
+  covsum <- as.data.frame(sum(tdat$cov))
+  covsum$Sample = paste(currentsample)
+  colnames(covsum)[colnames(covsum) == "sum(tdat$cov)"] <- "sumcov"
+  covsum <- covsum[,c(2,1)]
+  allcovsums <- left_join(allcovsums, covsum, by = "Sample") 
+
 ____________________________________________________________________________________________________________________________________________________________________________________
-#BACK TO HPC
-#Want to sum all reads from one sample from Salmon and from StringTie and compare to total mapped reads to the genome by minimap2.
-#Doing this to assess whether there is still this read counts error from StringTie and whether it impacts Salmon too!
-#In /fastdata/bop23ga/DietSwitch2_8_2021/Stringtie_e_option/, made the prepDE.py script and called with:
-python3 prepDE_DS21.py
-#Fetches baack an error about transcript location
