@@ -68,6 +68,13 @@ grep -P "\ttranscript\t" ${g}_stringtie.gtf | cut -f9 | grep -P "FBtr" | awk '{g
 cd /fastdata/bop23ga/DietSwitch2_8_2021/
 done
 
+#In MinimapOut folder
+samplist=$(cat ../samplelist.txt)
+for g in ${samplist[@]}
+do
+samtools flagstat ${g}.bam >${g}_flagstat.txt
+done
+
 #Copy across to shared drive:
 - merged and trmmed fastq
 - minimap outs
