@@ -287,22 +287,53 @@ dev.off()
 ##-------Compare Salmon and StringTie counts per sample to minimap2 mapped reads
 setwd('Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/')
 samplelist <- read.table("samplelist_69.txt")
-
-allcovsums <- data.frame(Sample = character(),
-                            covsum = integer())
-
 samplelist = samplelist$V1
+
+#For StringTie
+allcovsums <- data.frame(Sample = character(),
+                            Stringtie_count = integer())
 
 #Loop to fetch sum(t_data.ctab$cov) (cov is per-base coverage for the transcript) for each sample
 for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
-  tdat <- read.table(paste('Stringtie_e_option/', currentsample, '/t_data.ctab', sep = ''), header = TRUE, fill = TRUE)
+  tdat <- read.table(paste("Stringtie_e_option/", currentsample, "/t_data.ctab", sep = ''), header = TRUE, fill = TRUE)
   covsum <- as.data.frame(sum(tdat$cov))
   covsum$Sample = paste(currentsample)
-  colnames(covsum)[colnames(covsum) == "sum(tdat$cov)"] <- "sumcov"
+  colnames(covsum)[colnames(covsum) == "sum(tdat$cov)"] <- "Stringtie_count"
   covsum <- covsum[,c(2,1)]
   allcovsums <- rbind(allcovsums, covsum)
 }
 
-____________________________________________________________________________________________________________________________________________________________________________________
+#For Salmon
+allnumsums <- data.frame(Sample = character(),
+                       Salmon_count = integer())
+
+#Loop to fetch sum(quant.sf$NumReads)
+for(i in 1:length(samplelist))
+{
+  currentsample = samplelist[i]
+  quant <- read.table(paste("SalmonOut/", currentsample, "_salmonout/quant.sf", sep = ''), header = TRUE, fill = TRUE)
+  numsum <- as.data.frame(sum(quant$NumReads))
+  numsum$Sample = paste(currentsample)
+  colnames(numsum)[colnames(numsum) == "sum(quant$NumReads)"] <- "Salmon_count"
+  numsum <- numsum[,c(2,1)]
+  allnumsums <- rbind(allnumsums, numsum)
+}
+
+#For minimap2
+allminreads <- data.frame(Sample = character(),
+                          minimap2_count = integer())
+
+#Loop to fetch
+for(i in 1:length(samplelist))
+{
+  currentsample = samplelist[i]
+  flagstat <- read.table(paste("MinimapOut/flagstats/", currentsample, "_flagstat.txt", sep = ''), header = TRUE, fill = TRUE)
+  #THIS DOESN'T READ IN AS A TABLE
+}
+
+
+allcounts <- merge(allcovsums, allnumsums, by = "Sample")
+ggplot(allcounts, aes(x = Sample, y = (Salmon_count/Stringtie_count))) +
+  geom_point()
