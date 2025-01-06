@@ -329,11 +329,30 @@ allminreads <- data.frame(Sample = character(),
 for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
-  flagstat <- read.table(paste("MinimapOut/flagstats/", currentsample, "_flagstat.txt", sep = ''), header = TRUE, fill = TRUE)
-  #THIS DOESN'T READ IN AS A TABLE
+  flagstat <- readLines(paste("MinimapOut/flagstats/", currentsample, "_flagstat.txt", sep = ''))
+  minreads <- as.data.frame(as.integer(flagstat[5] %>% str_sub(1,7)))
+  minreads$Sample = paste(currentsample)
+  colnames(minreads)[1] <- "minimap2_count" #Have to do by column number as won't match names for some reason
+  minreads <- minreads[,c(2,1)]
+  allminreads <- rbind(allminreads, minreads)
 }
 
-
 allcounts <- merge(allcovsums, allnumsums, by = "Sample")
+allcounts <- merge(allcounts, allminreads, by = "Sample")
+
+allcounts$minimap2overStringtie = (allcounts$minimap2_count/allcounts$Stringtie_count)
+allcounts$minimap2overSalmon = (allcounts$minimap2_count/allcounts$Salmon_count)
+ggplot(allcounts, aes(x = Sample)) +
+  geom_point(data = allcounts, aes(x = Sample, y = minimap2overStringtie), colour = "black") +
+  geom_point(data = allcounts, aes(x = Sample, y = minimap2overSalmon), colour = "red") +
+  scale_colour_manual(values = c("minimap2_count/Stringtie_count" = "black", "minimap2_count/Salmon_count" = "red")) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "counts/")
+
+ggplot(allcounts, aes(x = Sample, y = (minimap2_count/Salmon_count))) +
+  geom_point()+
+  theme(axis.text.x = element_text(angle = 90))
+
 ggplot(allcounts, aes(x = Sample, y = (Salmon_count/Stringtie_count))) +
-  geom_point()
+  geom_point()+
+  theme(axis.text.x = element_text(angle = 90))
