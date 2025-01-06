@@ -342,17 +342,13 @@ allcounts <- merge(allcounts, allminreads, by = "Sample")
 
 allcounts$minimap2overStringtie = (allcounts$minimap2_count/allcounts$Stringtie_count)
 allcounts$minimap2overSalmon = (allcounts$minimap2_count/allcounts$Salmon_count)
+
+colours <- c("minimap2overStringtie" = "black", "minimap2overSalmon" = "red")
+
 ggplot(allcounts, aes(x = Sample)) +
-  geom_point(data = allcounts, aes(x = Sample, y = minimap2overStringtie), colour = "black") +
-  geom_point(data = allcounts, aes(x = Sample, y = minimap2overSalmon), colour = "red") +
-  scale_colour_manual(values = c("minimap2_count/Stringtie_count" = "black", "minimap2_count/Salmon_count" = "red")) +
+  geom_point(data = allcounts, aes(x = Sample, y = minimap2overStringtie, colour = "minimap2overStringtie")) +
+  geom_point(data = allcounts, aes(x = Sample, y = minimap2overSalmon, colour = "minimap2overSalmon")) +
+  theme_bw() +
+  scale_colour_manual(name = NULL, values = colours) +
   theme(axis.text.x = element_text(angle = 90)) +
-  labs(y = "counts/")
-
-ggplot(allcounts, aes(x = Sample, y = (minimap2_count/Salmon_count))) +
-  geom_point()+
-  theme(axis.text.x = element_text(angle = 90))
-
-ggplot(allcounts, aes(x = Sample, y = (Salmon_count/Stringtie_count))) +
-  geom_point()+
-  theme(axis.text.x = element_text(angle = 90))
+  labs(y = "counts")
