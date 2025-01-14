@@ -340,15 +340,32 @@ for(i in 1:length(samplelist))
 allcounts <- merge(allcovsums, allnumsums, by = "Sample")
 allcounts <- merge(allcounts, allminreads, by = "Sample")
 
-allcounts$minimap2overStringtie = (allcounts$minimap2_count/allcounts$Stringtie_count)
-allcounts$minimap2overSalmon = (allcounts$minimap2_count/allcounts$Salmon_count)
+#Plot
+allcounts$Stringtieoverminimap2 = (allcounts$Stringtie_count/allcounts$minimap2_count)
+allcounts$Salmonoverminimap2 = (allcounts$Salmon_count/allcounts$minimap2_count)
 
-colours <- c("minimap2overStringtie" = "black", "minimap2overSalmon" = "red")
+colours <- c("Stringtieoverminimap2" = "black", "Salmonoverminimap2" = "red")
 
 ggplot(allcounts, aes(x = Sample)) +
-  geom_point(data = allcounts, aes(x = Sample, y = minimap2overStringtie, colour = "minimap2overStringtie")) +
-  geom_point(data = allcounts, aes(x = Sample, y = minimap2overSalmon, colour = "minimap2overSalmon")) +
+  geom_point(data = allcounts, aes(x = Sample, y = Stringtieoverminimap2, colour = "Stringtieoverminimap2")) +
+  geom_point(data = allcounts, aes(x = Sample, y = Salmonoverminimap2, colour = "Salmonoverminimap2")) +
   theme_bw() +
   scale_colour_manual(name = NULL, values = colours) +
   theme(axis.text.x = element_text(angle = 90)) +
-  labs(y = "counts")
+  labs(y = "counts") +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  ylim(0, 1)
+
+allcounts$RatioDiffString = ((allcounts$minimap2_count-allcounts$Stringtie_count)/allcounts$minimap2_count)
+allcounts$RatioDiffSal = ((allcounts$minimap2_count-allcounts$Salmon_count)/allcounts$minimap2_count)
+
+colours <- c("RatioDiffString" = "black", "RatioDiffSal" = "red")
+
+ggplot(allcounts, aes(x = Sample)) +
+  geom_point(data = allcounts, aes(x = Sample, y = RatioDiffString, colour = "RatioDiffString")) +
+  geom_point(data = allcounts, aes(x = Sample, y = RatioDiffSal, colour = "RatioDiffSal")) +
+  theme_bw() +
+  scale_colour_manual(name = NULL, values = colours) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "minimap2 counts minus StringTie or Salmon counts\ndivided by minimap2 counts") +
+  ylim(0, 1)
