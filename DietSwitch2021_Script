@@ -328,28 +328,46 @@ for(i in 1:length(samplelist))
   allnumsums <- rbind(allnumsums, numsum)
 }
 
-#For minimap2
-allminreads <- data.frame(Sample = character(),
-                          minimap2_count = integer())
+#For minimap2 (genome mapping flagstats to compare to StringTie)
+allminreads_gen <- data.frame(Sample = character(),
+                          minimap2_gen_count = integer())
 
 #Loop to fetch
 for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
-  flagstat <- readLines(paste("MinimapOut/flagstats/", currentsample, "_flagstat.txt", sep = ''))
-  minreads <- as.data.frame(as.integer(flagstat[5] %>% str_sub(1,7)))
-  minreads$Sample = paste(currentsample)
-  colnames(minreads)[1] <- "minimap2_count" #Have to do by column number as won't match names for some reason
-  minreads <- minreads[,c(2,1)]
-  allminreads <- rbind(allminreads, minreads)
+  flagstatg <- readLines(paste("MinimapOut/flagstats/", currentsample, "_flagstat.txt", sep = ''))
+  minreadsg <- as.data.frame(as.integer(flagstatg[5] %>% str_sub(1,7)))
+  minreadsg$Sample = paste(currentsample)
+  colnames(minreadsg)[1] <- "minimap2_gen_count" #Have to do by column number as won't match names for some reason
+  minreadsg <- minreadsg[,c(2,1)]
+  allminreads_gen <- rbind(allminreads_gen, minreadsg)
+}
+
+#For minimap2 (transcriptome mapping flagstats to compare to Salmon)
+allminreads_tran <- data.frame(Sample = character(),
+                              minimap2_tran_count = integer())
+
+#Loop to fetch
+for(i in 1:length(samplelist))
+{
+  currentsample = samplelist[i]
+  flagstatt <- readLines(paste("MinimapCDNAOut/flagstats/", currentsample, "_flagstat.txt", sep = ''))
+  minreadst <- as.data.frame(as.integer(flagstatt[5] %>% str_sub(1,7)))
+  minreadst$Sample = paste(currentsample)
+  colnames(minreadst)[1] <- "minimap2_tran_count" #Have to do by column number as won't match names for some reason
+  minreadst <- minreadst[,c(2,1)]
+  allminreads_tran <- rbind(allminreads_tran, minreadst)
 }
 
 allcounts <- merge(allcovsums, allnumsums, by = "Sample")
-allcounts <- merge(allcounts, allminreads, by = "Sample")
+allcounts <- merge(allcounts, allminreads_gen, by = "Sample")
+allcounts <- merge(allcounts, allminreads_tran, by = "Sample")
+
 
 #Plot
-allcounts$Stringtieoverminimap2 = (allcounts$Stringtie_count/allcounts$minimap2_count)
-allcounts$Salmonoverminimap2 = (allcounts$Salmon_count/allcounts$minimap2_count)
+allcounts$Stringtieoverminimap2 = (allcounts$Stringtie_count/allcounts$minimap2_gen_count)
+allcounts$Salmonoverminimap2 = (allcounts$Salmon_count/allcounts$minimap2_tran_count)
 
 colours <- c("Stringtieoverminimap2" = "black", "Salmonoverminimap2" = "red")
 
