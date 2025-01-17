@@ -394,18 +394,3 @@ ggplot(allcounts, aes(x = Sample)) +
   theme(axis.text.x = element_text(angle = 90)) +
   labs(y = "minimap2 counts minus StringTie or Salmon counts\ndivided by minimap2 counts") +
   ylim(0, 1)
-
-____________________________________________________________________________________________________________________________________________________________________________________
-#BACK TO COMMAND LINE
-#The number of reads processed by Salmon is ~40% of those mapped by minimap2.
-
-SCRIPT NAME: SalmonTest170125.sh
--------
-#!/bin/bash
-#SBATCH --mem=8G
-#SBATCH --cpus-per-task=2
-#SBATCH --output=output.SalmonTest170125.out
-source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
-conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
-salmon quant --ont --incompatPrior 1 -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l A -a /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample001.bam -o /fastdata/bop23ga/DietSwitch2_8_2021/TESTSample001_salmonout/
--------
