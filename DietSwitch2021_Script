@@ -394,3 +394,24 @@ ggplot(allcounts, aes(x = Sample)) +
   theme(axis.text.x = element_text(angle = 90)) +
   labs(y = "minimap2 counts minus StringTie or Salmon counts\ndivided by minimap2 counts") +
   ylim(0, 1)
+
+____________________________________________________________________________________________________________________________________________________________________________________
+#BACK TO COMMAND LINE TO TEST SALMON FRAGMENT INCOMPATIBILITY
+#The number of reads processed by Salmon is ~40% of those mapped by minimap2. Perhaps due to this warning from the Salmon logs:
+#[2024-12-02 08:14:53.775] [jointLog] [info] Fragment incompatibility prior below threshold.  Incompatible fragments will be ignored.
+#From the Salmon manual:
+#--incompatPrior
+#This parameter governs the a priori probability that a fragment mapping or aligning to the reference in a manner incompatible with the prescribed library type is nonetheless the correct mapping. Note that Salmon sets this value, by default, to a small but non-zero probability. This means that if an incompatible mapping is the only mapping for a fragment, Salmon will still assign this fragment to the transcript. This default behavior is different than programs like RSEM, which assign incompatible fragments a 0 probability (i.e., incompatible mappings will be discarded). If you wish to obtain this behavior, so that only compatible mappings will be considered, you can set --incompatPrior 0.0. This will cause Salmon to only consider mappings (or alignments) that are compatible with the prescribed or inferred library type.
+#Perhaps we DON'T want to force it to assume lib type??
+
+SCRIPT NAME: SalmonTest170125.sh
+-------
+#!/bin/bash
+#SBATCH --mem=8G
+#SBATCH --cpus-per-task=2
+#SBATCH --output=output.SalmonTest170125.out
+source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
+conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
+salmon quant --ont -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l A -a /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample001.bam -o /fastdata/bop23ga/DietSwitch2_8_2021/TESTSample001_salmonout/
+-------
+#Maybe instead it's all these reads that don't have an error model? Add the error model???
