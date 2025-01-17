@@ -396,7 +396,7 @@ ggplot(allcounts, aes(x = Sample)) +
   ylim(0, 1)
 
 ____________________________________________________________________________________________________________________________________________________________________________________
-#BACK TO COMMAND LINE TO TEST SALMON FRAGMENT INCOMPATIBILITY
+#BACK TO COMMAND LINE
 #The number of reads processed by Salmon is ~40% of those mapped by minimap2.
 
 SCRIPT NAME: SalmonTest170125.sh
@@ -407,11 +407,5 @@ SCRIPT NAME: SalmonTest170125.sh
 #SBATCH --output=output.SalmonTest170125.out
 source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
 conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
-salmon quant --noErrorModel -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l A -a /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample001.bam -o /fastdata/bop23ga/DietSwitch2_8_2021/TESTSample001_salmonout/
+salmon quant --ont --incompatPrior 1 -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l A -a /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample001.bam -o /fastdata/bop23ga/DietSwitch2_8_2021/TESTSample001_salmonout/
 -------
-#Logs for this still have:
-#'Fragment incompatibility prior below threshold.  Incompatible fragments will be ignored.'
-#No errors any more but this makes no difference to the fragments mapped.
-#For this warning: '[warning] Only 748703 fragments were mapped, but the number of burn-in fragments was set to 5000000.'
-#See answer here: https://github.com/COMBINE-lab/salmon/issues/677
-#Investigate this fragment incompatibility prior further. Salmon is just not reading in all of our reads mapped with minimap2.
