@@ -408,3 +408,6 @@ for g in ${samplist[@]}
 do
 samtools view ${g}.bam -F 256 -F 2048 -o ${g}_primaries.txt
 done
+
+wc -l Sample001_primaries.txt
+wc -l Sample001_secondaries.txt
