@@ -395,24 +395,7 @@ ggplot(allcounts, aes(x = Sample)) +
   labs(y = "minimap2 counts minus StringTie or Salmon counts\ndivided by minimap2 counts") +
   ylim(0, 1)
 ____________________________________________________________________________________________________________________________________________________________________________________
-#COMMAND LINE - Investigating this primary/secondary mapping
-
-#Pull out secondary mappings from SAM files using samtools view
-samplist=$(cat ../samplelist.txt)
-for g in ${samplist[@]}
-do
-samtools view ${g}.bam -f 256 -o ${g}_secondaries.txt
-done
-
-#Second file that excludes secondary and supplementary mapping
-for g in ${samplist[@]}
-do
-samtools view ${g}.bam -F 256 -F 2048 -o ${g}_primaries.txt
-done
-
-wc -l Sample001_primaries.txt
-wc -l Sample001_secondaries.txt
-
+#COMMAND LINE - check how the primary-secondary-ratio affects the number of secondary mappings seen
 SCRIPT NAME: MinimapTest200125.sh
 -------
 #!/bin/bash
@@ -424,41 +407,5 @@ SCRIPT NAME: MinimapTest200125.sh
 #echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
 source /usr/local/extras/Genomics/.bashrc
 
-minimap2 -ax splice /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/Sample028_merge_trimmed.fastq -o /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample028_minimaptest.sam
+minimap2 -ax splice -p 1.0 -N 100 - /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/Sample028_merge_trimmed.fastq | samtools view -b > /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample028_minimaptest.bam
 -------
-
-SCRIPT NAME: MinimapTest200125_2.sh
--------
-#!/bin/bash
-#SBATCH --mem=8G
-#SBATCH --cpus-per-task=2
-#SBATCH --output=output.MinimapTest200125_2.out
-
-#Activate the repository
-#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
-source /usr/local/extras/Genomics/.bashrc
-
-minimap2 -ax splice --secondary=yes /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/Sample028_merge_trimmed.fastq | samtools view -b > /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample028_minimaptest_2.bam
--------
-
-samtools view Sample028_minimaptest.sam -f 256 -o Sample028_minimaptest_secondaries.txt
-#Still no sequence data
-samtools view Sample028_minimaptest_2.bam -f 256 -o Sample028_minimaptest2_secondaries.txt
-#Still no sequence data
-
-#Try combining both
-SCRIPT NAME: MinimapTest200125_2.sh (forgot to change name!)
--------
-#!/bin/bash
-#SBATCH --mem=8G
-#SBATCH --cpus-per-task=2
-#SBATCH --output=output.MinimapTest200125_3.out
-
-#Activate the repository
-#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
-source /usr/local/extras/Genomics/.bashrc
-
-minimap2 -ax splice --secondary=yes /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/Sample028_merge_trimmed.fastq -o /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample028_minimaptest_3.sam
--------
-samtools view Sample028_minimaptest_3.bam -f 256 -o Sample028_minimaptest3_secondaries.txt
-#Still no sequence data
