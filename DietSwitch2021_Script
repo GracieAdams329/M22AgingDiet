@@ -396,11 +396,11 @@ ggplot(allcounts, aes(x = Sample)) +
   ylim(0, 1)
 ____________________________________________________________________________________________________________________________________________________________________________________
 #COMMAND LINE - Investigating this primary/secondary mapping
-#Pull out secondary mappings from SAM files using samtools view then use awk to fetch those with MAPQ=0 (mapping quality is as good as the primary read's mapping quality)
+#Pull out secondary mappings from SAM files using samtools view
 samplist=$(cat ../samplelist.txt)
 for g in ${samplist[@]}
 do
-samtools view ${g}.bam -f 256 | awk '$5 == 0' > ${g}_secondaries.txt
+samtools view ${g}.bam -f 256-o ${g}_secondaries.txt
 done
 
 #Second file that excludes secondary and supplementary mapping
