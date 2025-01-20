@@ -394,3 +394,17 @@ ggplot(allcounts, aes(x = Sample)) +
   theme(axis.text.x = element_text(angle = 90)) +
   labs(y = "minimap2 counts minus StringTie or Salmon counts\ndivided by minimap2 counts") +
   ylim(0, 1)
+____________________________________________________________________________________________________________________________________________________________________________________
+#COMMAND LINE - Investigating this primary/secondary mapping
+#Pull out secondary mappings from SAM files using samtools view then use awk to fetch those with MAPQ=0 (mapping quality is as good as the primary read's mapping quality)
+samplist=$(cat ../samplelist.txt)
+for g in ${samplist[@]}
+do
+samtools view ${g}.bam -f 256 | awk '$5 == 0' > ${g}_secondaries.txt
+done
+
+#Second file that excludes secondary and supplementary mapping
+for g in ${samplist[@]}
+do
+samtools view ${g}.bam -F 256 -F 2048 -o ${g}_primaries.txt
+done
