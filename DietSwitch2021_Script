@@ -460,3 +460,5 @@ source /usr/local/extras/Genomics/.bashrc
 
 minimap2 -ax splice --secondary=yes /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/Sample028_merge_trimmed.fastq -o /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample028_minimaptest_3.sam
 -------
+samtools view Sample028_minimaptest_3.bam -f 256 -o Sample028_minimaptest3_secondaries.txt
+#Still no sequence data
