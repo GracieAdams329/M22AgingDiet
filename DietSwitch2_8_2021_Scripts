@@ -3,10 +3,8 @@
 SCRIPT NAME: MinimapStringtieSalmonScript_DS2021.sh
 -------
 #!/bin/bash
-# Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
-#SBATCH --mem=8G
-# Request 2 cores
-#SBATCH --cpus-per-task=2
+#SBATCH --mem=16G
+#SBATCH --cpus-per-task=4
 #SBATCH --mail-user=gadams3@sheffield.ac.uk
 #SBATCH --mail-type=ALL
 #SBATCH --output=output.MinimapStringtieSalmonDS2021_210125.out
@@ -16,8 +14,7 @@ SCRIPT NAME: MinimapStringtieSalmonScript_DS2021.sh
 #echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
 source /usr/local/extras/Genomics/.bashrc
 
-# Set the OPENMP_NUM_THREADS environment variable to 4
-# This is needed to ensure efficient core usage.
+# Set the OPENMP_NUM_THREADS environment variable to ensure efficient core usage.
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 SampleArray=$(cat /fastdata/bop23ga/DietSwitch2_8_2021/samplelist.txt)
@@ -40,7 +37,7 @@ for g in ${SampleArray[@]}
 do
 #Aligment to transcriptome using minimap2 for salmon
 minimap2 -ax splice -p 1.0 -N 100 /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/${g}_merge_trimmed.fastq | samtools view -b > /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/${g}.bam
-#done
+done
 
 source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
 conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
