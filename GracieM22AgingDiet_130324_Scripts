@@ -1,0 +1,34 @@
+#Trim barcodes using Dorado
+#SCRIPT NAME: Doradobarcodetrimscript.sh
+-------
+#!/bin/bash
+# Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
+#SBATCH --mem=8G
+# Request 2 cores
+#SBATCH --cpus-per-task=2
+# Email notifications
+#SBATCH --mail-user=gadams3@sheffield.ac.uk
+# Email notifications
+#SBATCH --mail-type=ALL
+# Change job output log file name (default is slurmJOBID)
+#SBATCH --output=output.Doradotrim051224.out
+# Request more time (default is 8 hours)
+#SBATCH --time=24:00:00
+
+#Activate the repository
+#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
+source /usr/local/extras/Genomics/.bashrc
+
+# Set the OPENMP_NUM_THREADS environment variable to 4
+# This is needed to ensure efficient core usage.
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+cd /fastdata/bop23ga/GracieM22AgingDiet_130324/fastq_pass/
+barclist=$(cat barcodelist.txt)
+
+for g in ${barclist[@]}
+do /usr/local/extras/Genomics/apps/dorado/dorado-0.8.1-linux-x64/bin/dorado trim ${g}_merge.fastq > ${g}_merge_trimmed.fastq --emit-fastq
+done
+-------
+
+
