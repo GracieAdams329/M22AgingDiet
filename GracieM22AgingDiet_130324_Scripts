@@ -35,13 +35,11 @@ done
 SCRIPT NAME: MinimapStringtieSalmonScript_M22Aging.sh
 -------
 #!/bin/bash
-# Request 8 gigabytes of real memory (RAM) 2 cores *4G = 8
-#SBATCH --mem=8G
-# Request 2 cores
-#SBATCH --cpus-per-task=2
+#SBATCH --mem=16G
+#SBATCH --cpus-per-task=4
 #SBATCH --mail-user=gadams3@sheffield.ac.uk
 #SBATCH --mail-type=ALL
-#SBATCH --output=output.MinimapStringtieSalmonM22Aging_210125.out
+#SBATCH --output=output.MinimapStringtieSalmonM22Aging_220125.out
 #SBATCH --time=72:00:00
 
 #Activate the repository
