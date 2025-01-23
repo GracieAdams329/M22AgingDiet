@@ -391,17 +391,3 @@ ggplot(allcounts, aes(x = Sample)) +
   labs(y = "minimap2 counts minus StringTie or Salmon counts\ndivided by minimap2 counts") +
   ylim(0, 1)
 ____________________________________________________________________________________________________________________________________________________________________________________
-#COMMAND LINE - check how the primary-secondary-ratio affects the number of secondary mappings seen
-SCRIPT NAME: MinimapTest200125.sh
--------
-#!/bin/bash
-#SBATCH --mem=8G
-#SBATCH --cpus-per-task=2
-#SBATCH --output=output.MinimapTest200125.out
-
-#Activate the repository
-#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
-source /usr/local/extras/Genomics/.bashrc
-
-minimap2 -ax splice -p 1.0 -N 100 - /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/DietSwitch2_8_2021/fastq_TOUSE/Sample028_merge_trimmed.fastq | samtools view -b > /fastdata/bop23ga/DietSwitch2_8_2021/MinimapCDNAOut/Sample028_minimaptest.bam
--------
