@@ -54,32 +54,34 @@ done
 cd /fastdata/bop23ga/DietSwitch2_8_2021/
 barclist=$(cat samplelist.txt)
 
+#Make TPMFiles folder in MinimapOut
 #Note that for the below code, if copied and pasted as a block it throws an error - make sure to type/copy and paste the individual lines!
 for g in ${barclist[@]}
 do
-cd Sringtie_e_option/${g}
+cd MinimapOut/${g}
 grep -P "\ttranscript\t" ${g}_stringtie.gtf | cut -f9 | grep -P "FBtr" | awk '{gsub("\"","",$0);gsub(";","",$0);print $4,$11,$12}' > ../TPMFiles/${g}_TPM.txt
 cd /fastdata/bop23ga/DietSwitch2_8_2021/
 done
 
+#Make flagstats folder in MinimapOut
 #In MinimapOut folder (to get counts for comparison with StringTie)
-samplist=$(cat ../samplelist.txt)
-for g in ${samplist[@]}
+for g in ${barclist[@]}
 do
-samtools flagstat ${g}.bam >${g}_flagstat.txt
+samtools flagstat ${g}_sorted.bam > flagstats/${g}_sorted_flagstat.txt
 done
 
+#Make flagstats folder in MinimapCDNAOut
 #In MinimapCDNAOut folder (to get counts for comparison with Salmon)
-samplist=$(cat ../samplelist.txt)
-for g in ${samplist[@]}
+for g in ${barclist[@]}
 do
-samtools flagstat ${g}.bam >${g}_flagstat.txt
+samtools flagstat ${g}.bam > flagstats/${g}_flagstat.txt
 done
 
 #Copy across to shared drive:
-- merged and trimmed fastq
-- minimap outs
-- salmon outs
+- merge_trimmed fastqs
+- MinimapOut
+- MinimapCDNAOut
+- SalmonOut
 ____________________________________________________________________________________________________________________________________________________________________________________
 R SCRIPT: SalmonvsStringtieTPM.R
 -------
