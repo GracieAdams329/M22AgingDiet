@@ -300,7 +300,7 @@ allcovsums <- data.frame(Sample = character(),
 for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
-  tdat <- read.table(paste("Stringtie_e_option/", currentsample, "/t_data.ctab", sep = ''), header = TRUE, fill = TRUE)
+  tdat <- read.table(paste("MinimapOut/", currentsample, "/t_data.ctab", sep = ''), header = TRUE, fill = TRUE)
   covsum <- as.data.frame(sum(tdat$cov))
   covsum$Sample = paste(currentsample)
   colnames(covsum)[colnames(covsum) == "sum(tdat$cov)"] <- "Stringtie_count"
@@ -332,13 +332,31 @@ allminreads_gen <- data.frame(Sample = character(),
 for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
-  flagstatg <- readLines(paste("MinimapOut/flagstats/", currentsample, "_flagstat.txt", sep = ''))
-  minreadsg <- as.data.frame(as.integer(flagstatg[5] %>% str_sub(1,7)))
+  flagstatg <- readLines(paste("MinimapOut/flagstats/", currentsample, "_sorted_flagstat.txt", sep = ''))
+  sec <- as.integer(flagstatg[2] %>% str_sub(1,7))
+  supp <- as.integer(flagstatg[3] %>% str_sub(1,5))
+  secsupp <- (sec + supp)
+  all <- as.integer((flagstatg[5] %>% str_sub(1,7)))
+  minreadsg <- as.data.frame(all - secsupp)
   minreadsg$Sample = paste(currentsample)
   colnames(minreadsg)[1] <- "minimap2_gen_count" #Have to do by column number as won't match names for some reason
   minreadsg <- minreadsg[,c(2,1)]
   allminreads_gen <- rbind(allminreads_gen, minreadsg)
 }
+#NA for sample 55 due to low read number so manually add the calcs for that one:
+currentsample = samplelist[19]
+flagstatg <- readLines(paste("MinimapOut/flagstats/", currentsample, "_sorted_flagstat.txt", sep = ''))
+sec <- as.integer(flagstatg[2] %>% str_sub(1,5))
+supp <- as.integer(flagstatg[3] %>% str_sub(1,4))
+secsupp <- (sec + supp)
+all <- as.integer((flagstatg[5] %>% str_sub(1,6)))
+minreadsg <- as.data.frame(all - secsupp)
+minreadsg$Sample = paste(currentsample)
+colnames(minreadsg)[1] <- "minimap2_gen_count" #Have to do by column number as won't match names for some reason
+minreadsg <- minreadsg[,c(2,1)]
+allminreads_gen <- rbind(allminreads_gen, minreadsg)
+#Remove the original Sample055 from row 19
+allminreads_gen <- allminreads_gen[-c(19),]
 
 #For minimap2 (transcriptome mapping flagstats to compare to Salmon)
 allminreads_tran <- data.frame(Sample = character(),
@@ -349,7 +367,11 @@ for(i in 1:length(samplelist))
 {
   currentsample = samplelist[i]
   flagstatt <- readLines(paste("MinimapCDNAOut/flagstats/", currentsample, "_flagstat.txt", sep = ''))
-  minreadst <- as.data.frame(as.integer(flagstatt[5] %>% str_sub(1,7)))
+  sec <- as.integer(flagstatt[2] %>% str_sub(1,7))
+  supp <- as.integer(flagstatt[3] %>% str_sub(1,5))
+  secsupp <- (sec + supp)
+  all <- as.integer((flagstatt[5] %>% str_sub(1,7)))
+  minreadst <- as.data.frame(all - secsupp)
   minreadst$Sample = paste(currentsample)
   colnames(minreadst)[1] <- "minimap2_tran_count" #Have to do by column number as won't match names for some reason
   minreadst <- minreadst[,c(2,1)]
@@ -377,8 +399,8 @@ ggplot(allcounts, aes(x = Sample)) +
   geom_hline(yintercept = 1, linetype = "dashed") +
   ylim(0, 1)
 
-allcounts$RatioDiffString = ((allcounts$minimap2_count-allcounts$Stringtie_count)/allcounts$minimap2_count)
-allcounts$RatioDiffSal = ((allcounts$minimap2_count-allcounts$Salmon_count)/allcounts$minimap2_count)
+allcounts$RatioDiffString = ((allcounts$minimap2_gen_count-allcounts$Stringtie_count)/allcounts$minimap2_gen_count)
+allcounts$RatioDiffSal = ((allcounts$minimap2_tran_count-allcounts$Salmon_count)/allcounts$minimap2_tran_count)
 
 colours <- c("RatioDiffString" = "black", "RatioDiffSal" = "red")
 
