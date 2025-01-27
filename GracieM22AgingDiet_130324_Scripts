@@ -34,21 +34,21 @@ done
 -------
 
 #Mapping and alignment
-SCRIPT NAME: MinimapScript_M22Aging.sh
+SCRIPT NAME: MinimapStringtieSalmonScript_M22Aging.sh
 -------
 #!/bin/bash
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=4
 #SBATCH --mail-user=gadams3@sheffield.ac.uk
 #SBATCH --mail-type=ALL
-#SBATCH --output=output.MinimapM22Aging_270125.out
+#SBATCH --output=output.MinimapStringtieSalmonM22Aging_270125.out
 #SBATCH --time=72:00:00
 
 #Activate the repository
 #echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
 source /usr/local/extras/Genomics/.bashrc
 
-# Set the OPENMP_NUM_THREADS environment variable to ensure efficient core usage.
+#Set the OPENMP_NUM_THREADS environment variable to ensure efficient core usage.
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 SampleArray=$(cat /fastdata/bop23ga/GracieM22AgingDiet_130324/barcodelist.txt)
@@ -56,36 +56,23 @@ SampleArray=$(cat /fastdata/bop23ga/GracieM22AgingDiet_130324/barcodelist.txt)
 for g in ${SampleArray[@]}
 do
 #Aligment to genome using minimap2
-minimap2 -ax splice -p 1.0 -N 100 /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /fastdata/bop23ga/GracieM22AgingDiet_130324/fastq_pass/${g}_merge_trimmed.fastq  | samtools view -b > /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}.bam
+minimap2 -ax splice -p 1.0 -N 100 /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa /fastdata/bop23ga/GracieM22AgingDiet_130324/fastq_pass/${g}_merge_trimmed.fastq | samtools view -b > /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}.bam
 #Sort for StringTie
-#samtools sort -@ 4 -m 16G -o /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}_sorted.bam /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}.bam
+samtools sort -@ 4 -m 16G -o /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}_sorted.bam /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}.bam
 done
 
-#for g in ${SampleArray[@]}
-#do
+for g in ${SampleArray[@]}
+do
+#StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
+#Merge with StringTie
+stringtie -p 2 -B -L -e -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}/${g}_stringtie.gtf /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}_sorted.bam
+done
+
+for g in ${SampleArray[@]}
+do
 #Aligment to transcriptome using minimap2 for salmon
-#minimap2 -ax splice -p 1.0 -N 100 /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/GracieM22AgingDiet_130324/fastq_pass/${g}_merge_trimmed.fastq | samtools view -Sb > /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapCDNAOut/${g}.bam
-#done
--------
-
-SCRIPT NAME: SalmonScript_M22Aging.sh
--------
-#!/bin/bash
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=4
-#SBATCH --mail-user=gadams3@sheffield.ac.uk
-#SBATCH --mail-type=ALL
-#SBATCH --output=output.SalmonM22Aging_230125.out
-#SBATCH --time=24:00:00
-
-#Activate the repository
-#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
-source /usr/local/extras/Genomics/.bashrc
-
-# Set the OPENMP_NUM_THREADS environment variable to ensure efficient core usage.
-export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-
-SampleArray=$(cat /fastdata/bop23ga/GracieM22AgingDiet_130324/barcodelist.txt)
+minimap2 -ax splice -p 1.0 -N 100 /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa /fastdata/bop23ga/GracieM22AgingDiet_130324/fastq_pass/${g}_merge_trimmed.fastq | samtools view -b > /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapCDNAOut/${g}.bam
+done
 
 source /usr/local/community/Genomics/apps/miniconda/etc/profile.d/conda.sh
 conda activate /usr/local/community/Genomics/apps/mambaforge/envs/salmon
@@ -94,32 +81,5 @@ for g in ${SampleArray[@]}
 do
 #Get read counts with salmon
 salmon quant --ont -t /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.cdna.all.fa -l U -a /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapCDNAOut/${g}.bam -o /fastdata/bop23ga/GracieM22AgingDiet_130324/SalmonOut/${g}_salmonout/
-done
--------
-
-SCRIPT NAME: StringtieScript_M22Aging.sh
--------
-#!/bin/bash
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=4
-#SBATCH --mail-user=gadams3@sheffield.ac.uk
-#SBATCH --mail-type=ALL
-#SBATCH --output=output.StringtieM22Aging_230125.out
-#SBATCH --time=24:00:00
-
-#Activate the repository
-#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
-source /usr/local/extras/Genomics/.bashrc
-
-# Set the OPENMP_NUM_THREADS environment variable to ensure efficient core usage.
-export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-
-SampleArray=$(cat /fastdata/bop23ga/GracieM22AgingDiet_130324/barcodelist.txt)
-
-for g in ${SampleArray[@]}
-do
-#StringTie to assemble transcripts into a transcriptome according to the gene info from the genome
-#Merge with StringTie
-stringtie -p 2 -B -L -e -G /shared/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.103.gtf -o /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}/${g}_stringtie.gtf /fastdata/bop23ga/GracieM22AgingDiet_130324/MinimapOut/${g}_sorted.bam
 done
 -------
