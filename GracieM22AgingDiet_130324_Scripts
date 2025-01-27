@@ -29,7 +29,7 @@ done
 
 for g in ${barclist[@]}
 do
-/usr/local/extras/Genomics/apps/dorado/dorado-0.8.1-linux-x64/bin/dorado trim ${g}_merge.fastq > ${g}_merge_trimmed.fastq --emit-fastq
+dorado trim ${g}_merge.fastq --sequencing-kit SQK-PCB111-24  > ${g}_merge_trimmed.fastq --emit-fastq
 done
 -------
 
