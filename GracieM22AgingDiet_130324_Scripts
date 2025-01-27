@@ -41,7 +41,7 @@ SCRIPT NAME: MinimapScript_M22Aging.sh
 #SBATCH --cpus-per-task=4
 #SBATCH --mail-user=gadams3@sheffield.ac.uk
 #SBATCH --mail-type=ALL
-#SBATCH --output=output.MinimapM22Aging_230125.out
+#SBATCH --output=output.MinimapM22Aging_270125.out
 #SBATCH --time=72:00:00
 
 #Activate the repository
