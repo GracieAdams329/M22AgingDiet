@@ -41,11 +41,10 @@ done
 SCRIPT NAME: pod5convertscript.sh
 -------
 #!/bin/bash
-#SBATCH --mem=8G
-#SBATCH --cpus-per-task=2
+#SBATCH --mem=16G
 #SBATCH --mail-user=gadams3@sheffield.ac.uk
 #SBATCH --mail-type=ALL
-#SBATCH --output=output.pod5convert_060225.out
+#SBATCH --output=output.pod5convert_200225.out
 #SBATCH --time=24:00:00
 
 #Activate the repository
@@ -63,7 +62,8 @@ barclist=$(cat ../barclist.txt)
 
 for g in ${barclist[@]}
 do
-pod5 convert fast5 ${g}/*.fast5 --output ${g}.pod5
+cd /fastdata/bop23ga/DietSwitch2_8_2021/fast5_pass/Lib01/${g}
+pod5 convert fast5 *.fast5 --output . --one-to-one .
 done
 -------
 
