@@ -54,6 +54,32 @@ do
 pod5 convert fast5 ${g}/*.fast5 --output ${g}.pod5
 -------
 
+SCRIPT NAME: Doradobasecallscript.sh
+-------
+#!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --qos=gpu
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=1
+#SBATCH --mail-user=gadams3@sheffield.ac.uk
+#SBATCH --mail-type=ALL
+#SBATCH --output=output.Doradocall_250225.out
+#SBATCH --time=168:00:00
+
+#Activate the repository
+#echo -e "if [[ -e '/usr/local/extras/Genomics' ]];\nthen\n\tsource /usr/local/extras/Genomics/.bashrc\nfi" >> $HOME/.bash_profile
+source /usr/local/extras/Genomics/.bashrc
+
+cd /fastdata/bop23ga/DietSwitch2_8_2021/fast5_pass/Lib01/
+#barclist=$(cat ../barclist.txt)
+
+#for g in ${barclist[@]}
+#do
+dorado basecaller hac barcode01.pod5 > /fastdata/bop23ga/DietSwitch2_8_2021/fastq_recalled/barcode01.fastq --emit-fastq
+#done
+-------
+
+
 
 
 
