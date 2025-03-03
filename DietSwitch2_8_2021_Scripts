@@ -86,6 +86,7 @@ dorado basecaller hac barcode01.pod5 > /fastdata/bop23ga/DietSwitch2_8_2021/fast
 
 
 
+
 #Combined the fastq files for each barcode as usual, then renamed them sample names for ease and trimmed barcodes using Dorado (see: https://github.com/GracieAdams329/ONT-RNASeq-Pipeline/blob/main/Step1-combine-trim-fastq)
 #Then run:
 SCRIPT NAME: MinimapStringtieSalmonScript_DS2021.sh
