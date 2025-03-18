@@ -501,3 +501,40 @@ ggplot(allcounts, aes(x = Sample)) +
 ____________________________________________________________________________________________________________________________________________________________________________________
 
 #R SCRIPT: SalmonDownstream_DTU_DS21.R
+# https://www.bioconductor.org/packages/release/workflows/vignettes/rnaseqDTU/inst/doc/rnaseqDTU.html#session-information
+# install.packages("BiocManager")
+# BiocManager::install(version = "3.20")
+# library(BiocManager)
+# BiocManager::install("DRIMSeq")
+# BiocManager::install("DEXSeq")
+# BiocManager::install("stageR")
+# BiocManager::install("tximport")
+# BiocManager::install("txdbmaker")
+
+library(DRIMSeq)
+library(DEXSeq)
+library(stageR)
+library(tximport)
+library(txdbmaker)
+library(GenomicFeatures)
+
+setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
+samps <- read.csv("DS2_8_2021_samples.csv")
+files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
+files
+
+txi <- tximport(files, type = "salmon", txOut = TRUE,
+                countsFromAbundance = "scaledTPM")
+cts <- txi$counts
+cts <- cts[rowSums(cts) > 0,]
+
+#Need .gtf file from ensembl: https://ftp.ensembl.org/pub/release-109/gtf/drosophila_melanogaster/
+gtf <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.gtf"
+txdb.filename <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.sqlite"
+txdb <- makeTxDbFromGFF(gtf)
+saveDb(txdb, txdb.filename)
+#Once made this can be quickly reloaded:
+txdb <- loadDb(txdb.filename)
+txdf <- select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID")
+tab <- table(txdf$GENEID)
+txdf$ntx <- tab[match(txdf$GENEID, names(tab))]
