@@ -78,7 +78,7 @@ dorado basecaller hac ${g}.pod5 > /fastdata/bop23ga/DietSwitch2_8_2021/fastq_rec
 done
 -------
 
-
+#######USING THE PREVIOUS SAMPLES FOR THE BELOW CODE AS NEED DATA FOR POSTER!#######
 
 
 
@@ -499,3 +499,5 @@ ggplot(allcounts, aes(x = Sample)) +
   labs(y = "minimap2 counts minus StringTie or Salmon counts\ndivided by minimap2 counts") +
   ylim(0, 1)
 ____________________________________________________________________________________________________________________________________________________________________________________
+
+#R SCRIPT: SalmonDownstream_DTU_DS21.R
