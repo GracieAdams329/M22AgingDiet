@@ -580,3 +580,11 @@ system.time({
   d <- dmFit(d, design=design_full)
   d <- dmTest(d, coef="diet")
 })
+
+res <- DRIMSeq::results(d)
+head(res)
+
+res.txp <- DRIMSeq::results(d, level="feature")
+head(res.txp)
+
+#Turn NAs into 1s as they would cause issues for stage-wise analysis
