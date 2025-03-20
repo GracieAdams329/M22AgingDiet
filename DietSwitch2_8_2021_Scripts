@@ -499,9 +499,9 @@ ggplot(allcounts, aes(x = Sample)) +
   labs(y = "minimap2 counts minus StringTie or Salmon counts\ndivided by minimap2 counts") +
   ylim(0, 1)
 ____________________________________________________________________________________________________________________________________________________________________________________
-
 #R SCRIPT: SalmonDownstream_DTU_DS21.R
-# https://www.bioconductor.org/packages/release/workflows/vignettes/rnaseqDTU/inst/doc/rnaseqDTU.html#session-information
+-------
+# https://www.bioconductor.org/packages/release/workflows/vignettes/rnaseqDTU/inst/doc/rnaseqDTU.html
 # install.packages("BiocManager")
 # BiocManager::install(version = "3.20")
 # library(BiocManager)
@@ -511,6 +511,8 @@ ________________________________________________________________________________
 # BiocManager::install("tximport")
 # BiocManager::install("txdbmaker")
 
+rm(list=ls())
+
 library(DRIMSeq)
 library(DEXSeq)
 library(stageR)
@@ -518,9 +520,11 @@ library(tximport)
 library(txdbmaker)
 library(GenomicFeatures)
 
+#Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
 samps <- read.csv("DS2_8_2021_samples.csv")
 files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
+names(files) <- samps$sample_id
 files
 
 txi <- tximport(files, type = "salmon", txOut = TRUE,
@@ -528,13 +532,51 @@ txi <- tximport(files, type = "salmon", txOut = TRUE,
 cts <- txi$counts
 cts <- cts[rowSums(cts) > 0,]
 
+#Transcript-to-gene mapping
 #Need .gtf file from ensembl: https://ftp.ensembl.org/pub/release-109/gtf/drosophila_melanogaster/
 gtf <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.gtf"
 txdb.filename <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.sqlite"
 txdb <- makeTxDbFromGFF(gtf)
-saveDb(txdb, txdb.filename)
-#Once made this can be quickly reloaded:
-txdb <- loadDb(txdb.filename)
-txdf <- select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID")
+#saveDb(txdb, txdb.filename)
+#Once made this can be quickly reloaded (not totally sure what the benefit of this is yet? Maybe save externally to R?):
+#txdb <- loadDb(txdb.filename)
+txdf <- select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID") #make sure to use base R select NOT dplyr!
 tab <- table(txdf$GENEID)
 txdf$ntx <- tab[match(txdf$GENEID, names(tab))]
+
+
+
+##-------Statistical analysis of differential transcript usage
+#Data frame
+counts <- data.frame(gene_id = txdf$GENEID, feature_id = txdf$TXNAME)
+cts <- as.data.frame(cts)
+library(dplyr)
+cts <- tibble::rownames_to_column(cts, "feature_id")
+counts <- merge(counts, cts, by = "feature_id")
+
+#DRIMSeq
+d <- dmDSdata(counts = counts, samples = samps)
+d
+#Filtering
+n = 69 #no. samples
+n.small = 2 #sample size of smallest group
+d <- dmFilter(d,
+              min_samps_feature_expr=n.small, min_feature_expr=10,
+              min_samps_feature_prop=n.small, min_feature_prop=0.1,
+              min_samps_gene_expr=n, min_gene_expr=10)
+d
+#Only genes that have >1 isoform since we are looking at DTU
+#To see how many of the remaining genes have N isoforms:
+table(table(counts(d)$gene_id))
+
+#Design matrix
+design_full <- model.matrix(~diet, data = DRIMSeq::samples(d))
+colnames(design_full)
+
+#Estimate precision
+set.seed(1)
+system.time({
+  d <- dmPrecision(d, design=design_full)
+  d <- dmFit(d, design=design_full)
+  d <- dmTest(d, coef="diet")
+})
