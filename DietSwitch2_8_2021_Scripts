@@ -519,10 +519,11 @@ library(stageR)
 library(tximport)
 library(txdbmaker)
 library(GenomicFeatures)
+library(dplyr)
 
 #Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
-samps <- read.csv("DS2_8_2021_samples.csv")
+samps <- read.csv("DS2_8_2021_samples_SUBSET195.csv")
 files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
 names(files) <- samps$sample_id
 files
@@ -540,17 +541,17 @@ txdb <- makeTxDbFromGFF(gtf)
 #saveDb(txdb, txdb.filename)
 #Once made this can be quickly reloaded (not totally sure what the benefit of this is yet? Maybe save externally to R?):
 #txdb <- loadDb(txdb.filename)
-txdf <- select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID") #make sure to use base R select NOT dplyr!
+txdf <- AnnotationDbi::select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID") #use select from AnnotationDbi NOT dplyr!
 tab <- table(txdf$GENEID)
 txdf$ntx <- tab[match(txdf$GENEID, names(tab))]
 
 
 
 ##-------Statistical analysis of differential transcript usage
+##-------DRIMSeq
 #Data frame
 counts <- data.frame(gene_id = txdf$GENEID, feature_id = txdf$TXNAME)
 cts <- as.data.frame(cts)
-library(dplyr)
 cts <- tibble::rownames_to_column(cts, "feature_id")
 counts <- merge(counts, cts, by = "feature_id")
 
@@ -558,8 +559,8 @@ counts <- merge(counts, cts, by = "feature_id")
 d <- dmDSdata(counts = counts, samples = samps)
 d
 #Filtering
-n = 69 #no. samples
-n.small = 2 #sample size of smallest group
+n = 6 #no. samples
+n.small = 3 #sample size of smallest group
 d <- dmFilter(d,
               min_samps_feature_expr=n.small, min_feature_expr=10,
               min_samps_feature_prop=n.small, min_feature_prop=0.1,
@@ -576,9 +577,9 @@ colnames(design_full)
 #Estimate precision
 set.seed(1)
 system.time({
-  d <- dmPrecision(d, design=design_full)
-  d <- dmFit(d, design=design_full)
-  d <- dmTest(d, coef="diet")
+  d <- dmPrecision(d, design = design_full)
+  d <- dmFit(d, design =design_full)
+  d <- dmTest(d, coef = "dietDR")
 })
 
 res <- DRIMSeq::results(d)
@@ -587,4 +588,118 @@ head(res)
 res.txp <- DRIMSeq::results(d, level="feature")
 head(res.txp)
 
-#Turn NAs into 1s as they would cause issues for stage-wise analysis
+#Turn p value NAs into 1s as they would cause issues for stage-wise analysis
+no.na <- function(x) ifelse(is.na(x), 1, x)
+res$pvalue <- no.na(res$pvalue)
+res.txp$pvalue <- no.na(res.txp$pvalue)
+#Plot estimated proportions for one of the significant genes where evidence of isoform switching
+idx <- which(res$adj_pvalue < 0.05)[1]
+res[idx,]
+plotProportions(d, gene_id = res$gene_id[idx], group_variable = "diet")
+
+
+
+##-------stageR
+#stageR asks 1. which genes contain evidence of DTU? 2. which transcripts in those genes are participating in the DTU?
+#Two steps: screening and confirmation
+#Construct vector of p-values for screening:
+#Strip gene and transcript version no.s from IDs by keeping only first 15 chars CHECK CORRECT FOR FLYBASE! Seems to have...
+pScreen <- res$pvalue
+strp <- function(x) substr(x,1,15)
+names(pScreen) <- strp(res$gene_id)
+#One col matrix of confirmation p-vals
+pConfirmation <- matrix(res.txp$pvalue, ncol = 1)
+rownames(pConfirmation) <- strp(res.txp$feature_id)
+#Two col df with transcript and gene IDs
+tx2gene <- res.txp[,c("feature_id", "gene_id")]
+for (i in 1:2) tx2gene[,i] <- strp(tx2gene[,i])
+
+#Following functions specify stageR analysis
+#Specify alpha: overall false discovery rate target for the analysis. Can't choose artbitrary threshold later like for p vals
+#Convenience functions getSignificantGenes and getSignificantTx, which are demonstrated in the stageR vignette
+stageRObj <- stageRTx(pScreen = pScreen, pConfirmation = pConfirmation,
+                      pScreenAdjusted = FALSE, tx2gene = tx2gene)
+stageRObj <- stageWiseAdjustment(stageRObj, method = "dtu", alpha = 0.1)
+suppressWarnings({
+  drim.padj <- getAdjustedPValues(stageRObj, order = FALSE,
+                                  onlySignificantGenes = TRUE)
+})
+head(drim.padj)
+#The final table with adjusted p-values summarizes the information from the two-stage analysis
+#Only genes that passed the filter are included in the table, so the table already represents screened genes
+#The transcripts with values in the column, transcript, less than 0.05 pass the confirmation stage on a target
+#5% overall false discovery rate, or OFDR. This means that, in expectation, no more than 5% of the genes that
+#pass screening will either (1) not contain any DTU, so be falsely screened genes, or (2) contain a falsely confirmed
+#transcript. A falsely confirmed transcript is a transcript with an adjusted p-value less than 0.05 which does not
+#exhibit differential usage across condition. The stageR procedure allows us to look at both the genes that passed the
+#screening stage and the transcripts with adjusted p-values less than our target alpha, and understand what kind of
+#overall error rate this procedure entails. This cannot be said for an arbitrary procedure of looking at standard gene
+#adjusted p-values and transcript adjusted p-values, where the adjustment was performed independently.
+
+
+
+##-------Post-hoc filtering on the standard deviation in proportions
+#DRIMSeq can exceed FDR bounds so post-hoc filtering of p vals improved FDR/OFDR control. Use SD for filtering
+#P vals may no longer be uniform after filtering out small effect txs and genes, but probably makes it MORE conservative
+res.txp.filt <- DRIMSeq::results(d, level = "feature")
+smallProportionSD <- function(d, filter = 0.1) {
+  cts <- as.matrix(subset(counts(d), select = -c(gene_id, feature_id)))
+  gene.cts <- rowsum(cts, counts(d)$gene_id)
+  total.cts <- gene.cts[match(counts(d)$gene_id, rownames(gene.cts)),]
+  props <- cts/total.cts
+  propSD <- sqrt(rowVars(props))
+  propSD < filter
+}
+filt <- smallProportionSD(d)
+res.txp.filt$pvalue[filt] <- 1 
+res.txp.filt$adj_pvalue[filt] <- 1
+
+
+
+##-------DEXSeq
+#When it says 'exon', this means 'transcript' for our analysis
+#DEXSeq will test – after accounting for total gene expression for this sample and for the proportion of this transcript
+#relative to the others – whether there is a condition-specific difference in the transcript proportion relative to others
+sample.data <- DRIMSeq::samples(d)
+count.data <- round(as.matrix(counts(d)[,-c(1:2)]))
+dxd <- DEXSeqDataSet(countData = count.data,
+                     sampleData = sample.data,
+                     design = ~sample + exon + diet:exon,
+                     featureID = counts(d)$feature_id,
+                     groupID = counts(d)$gene_id)
+#DEXSeq analysis
+system.time({
+  dxd <- estimateSizeFactors(dxd)
+  dxd <- estimateDispersions(dxd, quiet = TRUE)
+  dxd <- testForDEU(dxd, reducedModel = ~sample + exon)
+})
+#Compute per-gene adjusted p val and construct results table
+dxr <- DEXSeqResults(dxd, independentFiltering = FALSE)
+qval <- perGeneQValue(dxr)
+dxr.g <- data.frame(gene = names(qval), qval)
+#Can also reduce tx-level results table to simple df
+columns <- c("featureID", "groupID", "pvalue")
+dxr <- as.data.frame(dxr[,columns])
+head(dxr)
+
+
+##-------stageR following DEXSeq
+#Similar code to that used for stageR above
+strp <- function(x) substr(x, 1, 15)
+pConfirmation <- matrix(dxr$pvalue, ncol= 1)
+dimnames(pConfirmation) <- list(strp(dxr$featureID), "transcript")
+pScreen <- qval
+names(pScreen) <- strp(names(pScreen))
+tx2gene <- as.data.frame(dxr[,c("featureID", "groupID")])
+for (i in 1:2) tx2gene[,i] <- strp(tx2gene[,i])
+#Following three functions provide a table with the OFDR control described above
+#Set of genes passing screening should not have more than (alpa)% of either genes which have in fact no DTU or genes
+#which contain a transcript with an adjusted p-value less than (alpha)% which do not participate in DTU
+stageRObj <- stageRTx(pScreen = pScreen, pConfirmation = pConfirmation,
+                      pScreenAdjusted = TRUE, tx2gene = tx2gene)
+stageRObj <- stageWiseAdjustment(stageRObj, method = "dtu", alpha = 0.1)
+suppressWarnings({
+  dex.padj <- getAdjustedPValues(stageRObj, order = FALSE,
+                                 onlySignificantGenes = TRUE)
+})
+head(dex.padj)
