@@ -573,7 +573,7 @@ d
 table(table(counts(d)$gene_id))
 
 #Design matrix
-design_full <- model.matrix(line~diet, data = DRIMSeq::samples(d))
+design_full <- model.matrix(~diet+line, data = DRIMSeq::samples(d))
 colnames(design_full)
 
 #Following 3 functions estimate model parameters and test for DTU
@@ -581,8 +581,9 @@ set.seed(1)
 system.time({
   d <- dmPrecision(d, design = design_full) #estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
   d <- dmFit(d, design = design_full) #fit regression coefficients and perform null hypothesis testing on the coefficient of interest
-  d <- dmTest(d, coef = "dietDR_Switch") #if simple two-group model, test the coefficient associated with the difference between condition 2 and condition 1
+  d <- dmTest(d, coef = "(Intercept)") #if simple two-group model, test the coefficient associated with the difference between condition 2 and condition 1
 })
+#NEED TO FIGURE OUT HOW TO USE ADDITIVE MODEL
 #Results table
 res <- DRIMSeq::results(d)
 head(res)
