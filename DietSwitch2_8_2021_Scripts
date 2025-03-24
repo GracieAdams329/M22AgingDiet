@@ -563,9 +563,9 @@ n = 69 #no. samples
 n.small = 2 #sample size of smallest group
 #For a transcript to be retained, we require that:
 d <- dmFilter(d,
-              min_samps_feature_expr = n.small, min_feature_expr = 3, #it has a count of at least X in at least n.small samples
-              min_samps_feature_prop = n.small, min_feature_prop = 0.05, #it has a relative abundance proportion of at least X in at least n.small samples
-              min_samps_gene_expr = n, min_gene_expr = 3) #the total count of corresponding gene is at least X in all n samples
+              min_samps_feature_expr = n.small, min_feature_expr = 1, #it has a count of at least X in at least n.small samples
+              min_samps_feature_prop = n.small, min_feature_prop = 0.01, #it has a relative abundance proportion of at least X in at least n.small samples
+              min_samps_gene_expr = n, min_gene_expr = 1) #the total count of corresponding gene is at least X in all n samples
 d
 #The two count filters are the only ones used in the original DRIMSeq vignette
 #Only genes that have >1 isoform since we are looking at DTU
@@ -573,7 +573,7 @@ d
 table(table(counts(d)$gene_id))
 
 #Design matrix
-design_full <- model.matrix(~diet, data = DRIMSeq::samples(d))
+design_full <- model.matrix(line~diet, data = DRIMSeq::samples(d))
 colnames(design_full)
 
 #Following 3 functions estimate model parameters and test for DTU
@@ -605,7 +605,7 @@ plotProportions(d, gene_id = res$gene_id[idx], group_variable = "diet")
 #stageR asks 1. which genes contain evidence of DTU? 2. which transcripts in those genes are participating in the DTU?
 #Two steps: screening and confirmation
 #Construct vector of p-values for screening:
-#Strip gene and transcript version no.s from IDs by keeping only first 15 chars CHECK CORRECT FOR FLYBASE! Seems to have...
+#Strip gene and transcript version no.s from IDs by keeping only first 15 chars CHECK WORKS FOR FLYBASE GENE NAMES! Seems to have...
 pScreen <- res$pvalue
 strp <- function(x) substr(x,1,15)
 names(pScreen) <- strp(res$gene_id)
@@ -683,6 +683,7 @@ dxr.g <- data.frame(gene = names(qval), qval)
 columns <- c("featureID", "groupID", "pvalue")
 dxr <- as.data.frame(dxr[,columns])
 head(dxr)
+
 
 
 ##-------stageR following DEXSeq
