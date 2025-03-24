@@ -523,7 +523,7 @@ library(dplyr)
 
 #Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
-samps <- read.csv("DS2_8_2021_samples_SUBSET195.csv")
+samps <- read.csv("DS2_8_2021_samples.csv")
 files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
 names(files) <- samps$sample_id
 files
@@ -559,13 +559,15 @@ counts <- merge(counts, cts, by = "feature_id")
 d <- dmDSdata(counts = counts, samples = samps)
 d
 #Filtering
-n = 6 #no. samples
-n.small = 3 #sample size of smallest group
+n = 69 #no. samples
+n.small = 2 #sample size of smallest group
+#For a transcript to be retained, we require that:
 d <- dmFilter(d,
-              min_samps_feature_expr=n.small, min_feature_expr=10,
-              min_samps_feature_prop=n.small, min_feature_prop=0.1,
-              min_samps_gene_expr=n, min_gene_expr=10)
+              min_samps_feature_expr = n.small, min_feature_expr = 3, #it has a count of at least X in at least n.small samples
+              min_samps_feature_prop = n.small, min_feature_prop = 0.05, #it has a relative abundance proportion of at least X in at least n.small samples
+              min_samps_gene_expr = n, min_gene_expr = 3) #the total count of corresponding gene is at least X in all n samples
 d
+#The two count filters are the only ones used in the original DRIMSeq vignette
 #Only genes that have >1 isoform since we are looking at DTU
 #To see how many of the remaining genes have N isoforms:
 table(table(counts(d)$gene_id))
@@ -574,14 +576,14 @@ table(table(counts(d)$gene_id))
 design_full <- model.matrix(~diet, data = DRIMSeq::samples(d))
 colnames(design_full)
 
-#Estimate precision
+#Following 3 functions estimate model parameters and test for DTU
 set.seed(1)
 system.time({
-  d <- dmPrecision(d, design = design_full)
-  d <- dmFit(d, design =design_full)
-  d <- dmTest(d, coef = "dietDR")
+  d <- dmPrecision(d, design = design_full) #estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
+  d <- dmFit(d, design = design_full) #fit regression coefficients and perform null hypothesis testing on the coefficient of interest
+  d <- dmTest(d, coef = "dietDR_Switch") #if simple two-group model, test the coefficient associated with the difference between condition 2 and condition 1
 })
-
+#Results table
 res <- DRIMSeq::results(d)
 head(res)
 
@@ -703,3 +705,5 @@ suppressWarnings({
                                  onlySignificantGenes = TRUE)
 })
 head(dex.padj)
+
+#Stopped at section 6 as don't need DGE right now
