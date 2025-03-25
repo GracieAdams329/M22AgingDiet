@@ -501,15 +501,17 @@ ggplot(allcounts, aes(x = Sample)) +
 ____________________________________________________________________________________________________________________________________________________________________________________
 #R SCRIPT: SalmonDownstream_DTU_DS21.R
 -------
-# https://www.bioconductor.org/packages/release/workflows/vignettes/rnaseqDTU/inst/doc/rnaseqDTU.html
-# install.packages("BiocManager")
-# BiocManager::install(version = "3.20")
-# library(BiocManager)
-# BiocManager::install("DRIMSeq")
-# BiocManager::install("DEXSeq")
-# BiocManager::install("stageR")
-# BiocManager::install("tximport")
-# BiocManager::install("txdbmaker")
+#https://www.bioconductor.org/packages/release/workflows/vignettes/rnaseqDTU/inst/doc/rnaseqDTU.html
+#https://bioconductor.org/packages/release/bioc/vignettes/DRIMSeq/inst/doc/DRIMSeq.pdf
+#See also the QTL analysis workflow in DRIMSeq vignette
+#install.packages("BiocManager")
+#BiocManager::install(version = "3.20")
+#library(BiocManager)
+#BiocManager::install("DRIMSeq")
+#BiocManager::install("DEXSeq")
+#BiocManager::install("stageR")
+#BiocManager::install("tximport")
+#BiocManager::install("txdbmaker")
 
 rm(list=ls())
 
@@ -523,124 +525,147 @@ library(dplyr)
 
 #Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
-samps <- read.csv("DS2_8_2021_samples.csv")
-files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
-names(files) <- samps$sample_id
-files
+ALLsamps <- read.csv("DS2_8_2021_samples.csv")
+#Run analysis for each line individually to loop through - currently don't know how to use ~diet+line model so do separately for now
+lines <- unique(ALLsamps$line)
+#Set up overall DF to store results
+overall_drim.padj <- setNames(data.frame(matrix(ncol = 5, nrow = 0)), c("line", "geneID", "txID", "gene", "transcript"))
 
-txi <- tximport(files, type = "salmon", txOut = TRUE,
-                countsFromAbundance = "scaledTPM")
-cts <- txi$counts
-cts <- cts[rowSums(cts) > 0,]
-
-#Transcript-to-gene mapping
-#Need .gtf file from ensembl: https://ftp.ensembl.org/pub/release-109/gtf/drosophila_melanogaster/
-gtf <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.gtf"
-txdb.filename <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.sqlite"
-txdb <- makeTxDbFromGFF(gtf)
-#saveDb(txdb, txdb.filename)
-#Once made this can be quickly reloaded (not totally sure what the benefit of this is yet? Maybe save externally to R?):
-#txdb <- loadDb(txdb.filename)
-txdf <- AnnotationDbi::select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID") #use select from AnnotationDbi NOT dplyr!
-tab <- table(txdf$GENEID)
-txdf$ntx <- tab[match(txdf$GENEID, names(tab))]
-
-
-
-##-------Statistical analysis of differential transcript usage
-##-------DRIMSeq
-#Data frame
-counts <- data.frame(gene_id = txdf$GENEID, feature_id = txdf$TXNAME)
-cts <- as.data.frame(cts)
-cts <- tibble::rownames_to_column(cts, "feature_id")
-counts <- merge(counts, cts, by = "feature_id")
-
-#DRIMSeq
-d <- dmDSdata(counts = counts, samples = samps)
-d
-#Filtering
-n = 69 #no. samples
-n.small = 2 #sample size of smallest group
-#For a transcript to be retained, we require that:
-d <- dmFilter(d,
-              min_samps_feature_expr = n.small, min_feature_expr = 1, #it has a count of at least X in at least n.small samples
-              min_samps_feature_prop = n.small, min_feature_prop = 0.01, #it has a relative abundance proportion of at least X in at least n.small samples
-              min_samps_gene_expr = n, min_gene_expr = 1) #the total count of corresponding gene is at least X in all n samples
-d
-#The two count filters are the only ones used in the original DRIMSeq vignette
-#Only genes that have >1 isoform since we are looking at DTU
-#To see how many of the remaining genes have N isoforms:
-table(table(counts(d)$gene_id))
-
-#Design matrix
-design_full <- model.matrix(~diet+line, data = DRIMSeq::samples(d))
-colnames(design_full)
-
-#Following 3 functions estimate model parameters and test for DTU
-set.seed(1)
-system.time({
-  d <- dmPrecision(d, design = design_full) #estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
-  d <- dmFit(d, design = design_full) #fit regression coefficients and perform null hypothesis testing on the coefficient of interest
-  d <- dmTest(d, coef = "(Intercept)") #if simple two-group model, test the coefficient associated with the difference between condition 2 and condition 1
-})
-#NEED TO FIGURE OUT HOW TO USE ADDITIVE MODEL
-#Results table
-res <- DRIMSeq::results(d)
-head(res)
-
-res.txp <- DRIMSeq::results(d, level="feature")
-head(res.txp)
-
-#Turn p value NAs into 1s as they would cause issues for stage-wise analysis
-no.na <- function(x) ifelse(is.na(x), 1, x)
-res$pvalue <- no.na(res$pvalue)
-res.txp$pvalue <- no.na(res.txp$pvalue)
-#Plot estimated proportions for one of the significant genes where evidence of isoform switching
-idx <- which(res$adj_pvalue < 0.05)[1]
-res[idx,]
-plotProportions(d, gene_id = res$gene_id[idx], group_variable = "diet")
-
-
-
-##-------stageR
-#stageR asks 1. which genes contain evidence of DTU? 2. which transcripts in those genes are participating in the DTU?
-#Two steps: screening and confirmation
-#Construct vector of p-values for screening:
-#Strip gene and transcript version no.s from IDs by keeping only first 15 chars CHECK WORKS FOR FLYBASE GENE NAMES! Seems to have...
-pScreen <- res$pvalue
-strp <- function(x) substr(x,1,15)
-names(pScreen) <- strp(res$gene_id)
-#One col matrix of confirmation p-vals
-pConfirmation <- matrix(res.txp$pvalue, ncol = 1)
-rownames(pConfirmation) <- strp(res.txp$feature_id)
-#Two col df with transcript and gene IDs
-tx2gene <- res.txp[,c("feature_id", "gene_id")]
-for (i in 1:2) tx2gene[,i] <- strp(tx2gene[,i])
-
-#Following functions specify stageR analysis
-#Specify alpha: overall false discovery rate target for the analysis. Can't choose artbitrary threshold later like for p vals
-#Convenience functions getSignificantGenes and getSignificantTx, which are demonstrated in the stageR vignette
-stageRObj <- stageRTx(pScreen = pScreen, pConfirmation = pConfirmation,
-                      pScreenAdjusted = FALSE, tx2gene = tx2gene)
-stageRObj <- stageWiseAdjustment(stageRObj, method = "dtu", alpha = 0.1)
-suppressWarnings({
-  drim.padj <- getAdjustedPValues(stageRObj, order = FALSE,
-                                  onlySignificantGenes = TRUE)
-})
-head(drim.padj)
-#The final table with adjusted p-values summarizes the information from the two-stage analysis
-#Only genes that passed the filter are included in the table, so the table already represents screened genes
-#The transcripts with values in the column, transcript, less than 0.05 pass the confirmation stage on a target
-#5% overall false discovery rate, or OFDR. This means that, in expectation, no more than 5% of the genes that
-#pass screening will either (1) not contain any DTU, so be falsely screened genes, or (2) contain a falsely confirmed
-#transcript. A falsely confirmed transcript is a transcript with an adjusted p-value less than 0.05 which does not
-#exhibit differential usage across condition. The stageR procedure allows us to look at both the genes that passed the
-#screening stage and the transcripts with adjusted p-values less than our target alpha, and understand what kind of
-#overall error rate this procedure entails. This cannot be said for an arbitrary procedure of looking at standard gene
-#adjusted p-values and transcript adjusted p-values, where the adjustment was performed independently.
-
-
-
+for(i in 1:length(lines))
+{
+  #i = 2
+  samps <- filter(ALLsamps, line == lines[i])
+  files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
+  names(files) <- samps$sample_id
+  files
+  
+  txi <- tximport(files, type = "salmon", txOut = TRUE,
+                  countsFromAbundance = "scaledTPM")
+  cts <- txi$counts
+  cts <- cts[rowSums(cts) > 0,]
+  
+  #Transcript-to-gene mapping
+  #Need .gtf file from ensembl: https://ftp.ensembl.org/pub/release-109/gtf/drosophila_melanogaster/
+  gtf <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.gtf"
+  txdb.filename <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.sqlite"
+  txdb <- makeTxDbFromGFF(gtf)
+  #saveDb(txdb, txdb.filename)
+  #Once made this can be quickly reloaded (not totally sure what the benefit of this is yet? Maybe save externally to R?):
+  #txdb <- loadDb(txdb.filename)
+  txdf <- AnnotationDbi::select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID") #use select from AnnotationDbi NOT dplyr!
+  tab <- table(txdf$GENEID)
+  txdf$ntx <- tab[match(txdf$GENEID, names(tab))]
+  
+  
+  
+  ##-------Statistical analysis of differential transcript usage
+  ##-------DRIMSeq
+  #Can also account for batch effects in DRIMSeq if needed - THIS MAY BE AN OPTION FOR THE LINES??
+  #Data frame
+  counts <- data.frame(gene_id = txdf$GENEID, feature_id = txdf$TXNAME)
+  cts <- as.data.frame(cts)
+  cts <- tibble::rownames_to_column(cts, "feature_id")
+  counts <- merge(counts, cts, by = "feature_id")
+  
+  #DRIMSeq
+  d <- dmDSdata(counts = counts, samples = samps)
+  d
+  #Filtering
+  n = nrow(samps) #no. samples
+  if (n < 6) {n.small <- 2} else if (n == 6) {n.small <- 3} #sample size of smallest group - accounts for some samples being omitted
+  #For a transcript to be retained, we require that:
+  d <- dmFilter(d,
+                min_samps_feature_expr = n.small, min_feature_expr = 1, #it has a count of at least X in at least n.small samples
+                min_samps_feature_prop = n.small, min_feature_prop = 0.01, #it has a relative abundance proportion of at least X in at least n.small samples
+                min_samps_gene_expr = n, min_gene_expr = 1) #the total count of corresponding gene is at least X in all n samples
+  d
+  #The two count filters are the only ones used in the original DRIMSeq vignette
+  #Only genes that have >1 isoform since we are looking at DTU
+  #To see how many of the remaining genes have N isoforms:
+  table(table(counts(d)$gene_id))
+  
+  #Precision, proportion and DTU estimation
+  #Design matrix
+  #Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
+  design_full <- model.matrix(~ diet, data = DRIMSeq::samples(d))
+  colnames(design_full)
+  
+  #Following 3 functions estimate model parameters and test for DTU
+  set.seed(1)
+  system.time({
+    d <- dmPrecision(d, design = design_full) #estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
+    d <- dmFit(d, design = design_full) #fit regression coefficients and perform null hypothesis testing on the coefficient of interest
+    d <- dmTest(d, coef = "dietDR_Switch") #coef parameter indicates which columns of full design should be removed to get null design (eg. the treatment)
+  })
+  
+  pdf(paste(lines[i], "_DRIMSeq_Precision_Proportion_DTUest.pdf"), width = 10, height = 10)
+  print(plotPrecision(d))
+  #head(coefficients(d))
+  #head(DRIMSeq::results(d))
+  print(plotPValues(d))
+  print(plotPValues(d, level= "feature"))
+  dev.off()
+  
+  #Save results tables, also as objects for later
+  res <- DRIMSeq::results(d)
+  res.txp <- DRIMSeq::results(d, level="feature")
+  assign(paste(lines[i], "res", sep = "_"), DRIMSeq::results(d))
+  assign(paste(lines[i], "res.txp", sep = "_"), DRIMSeq::results(d, level="feature"))
+  
+  #Plot estimated proportions for one of the significant genes where evidence of isoform switching
+  #FOCUS ON stageR RESULTS FOR NOW!
+  #idx <- which(res$adj_pvalue < 0.05)[1]
+  #res[idx,]
+  #plotProportions(d, gene_id = res$gene_id[idx], group_variable = "diet", plot_type = "lineplot")
+  
+  #Turn p value NAs into 1s as they would cause issues for stage-wise analysis
+  no.na <- function(x) ifelse(is.na(x), 1, x)
+  res$pvalue <- no.na(res$pvalue)
+  res.txp$pvalue <- no.na(res.txp$pvalue)
+  
+  
+  
+  ##-------stageR
+  #stageR asks 1. which genes contain evidence of DTU? 2. which transcripts in those genes are participating in the DTU?
+  #Two steps: screening and confirmation
+  #Assign gene-level pvalues to the screening stage
+  pScreen <- res$pvalue
+  names(pScreen) <- res$gene_id
+  #Assign tx-level pvalues to the confirmation stage
+  pConfirmation <- matrix(res.txp$pvalue, ncol = 1)
+  rownames(pConfirmation) <- res.txp$feature_id
+  #Create gene-tx mapping
+  tx2gene <- res.txp[, c("feature_id", "gene_id")]
+  #Create the stageRTx object and perform stage-wise analysis
+  stageR0bj <- stageRTx(pScreen = pScreen, pConfirmation = pConfirmation, pScreenAdjusted = FALSE, tx2gene = tx2gene)
+  stageR0bj <- stageWiseAdjustment(object = stageR0bj, method = "dtu", alpha = 0.1)
+  getSignificantGenes(stageR0bj)
+  getSignificantTx(stageR0bj)
+  drim.padj <- getAdjustedPValues(stageR0bj, order = TRUE, onlySignificantGenes = FALSE)
+  head(drim.padj)
+  #The final table with adjusted p-values summarizes the information from the two-stage analysis
+  #Only genes that passed the filter are included in the table, so the table already represents screened genes
+  #The transcripts with values in the column, transcript, less than 0.05 pass the confirmation stage on a target
+  #5% overall false discovery rate, or OFDR. This means that, in expectation, no more than 5% of the genes that
+  #pass screening will either (1) not contain any DTU, so be falsely screened genes, or (2) contain a falsely confirmed
+  #transcript. A falsely confirmed transcript is a transcript with an adjusted p-value less than 0.05 which does not
+  #exhibit differential usage across condition. The stageR procedure allows us to look at both the genes that passed the
+  #screening stage and the transcripts with adjusted p-values less than our target alpha, and understand what kind of
+  #overall error rate this procedure entails. This cannot be said for an arbitrary procedure of looking at standard gene
+  #adjusted p-values and transcript adjusted p-values, where the adjustment was performed independently.
+  drim.padj$line = paste(lines[i])
+  drim.padj <- drim.padj[,c(5, 1, 2, 3, 4)]
+  overall_drim.padj <- rbind(overall_drim.padj, drim.padj)
+}  
+  
+  
+ 
+  
+  
+  
+   
+#BELOW NOT RUN FOR POSTER DATA
+  
 ##-------Post-hoc filtering on the standard deviation in proportions
 #DRIMSeq can exceed FDR bounds so post-hoc filtering of p vals improved FDR/OFDR control. Use SD for filtering
 #P vals may no longer be uniform after filtering out small effect txs and genes, but probably makes it MORE conservative
