@@ -523,7 +523,6 @@ library(txdbmaker)
 library(GenomicFeatures)
 library(dplyr)
 library(ggplot2)
-library(VennDiagram)
 
 #ImportiggVennDiagram#Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
@@ -536,6 +535,7 @@ overall_drim.padj <- setNames(data.frame(matrix(ncol = 5, nrow = 0)), c("line", 
 for(i in 1:length(lines))
 {
   #i = 2
+  print(lines[i])
   samps <- filter(ALLsamps, line == lines[i])
   files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
   names(files) <- samps$sample_id
@@ -600,13 +600,13 @@ for(i in 1:length(lines))
     d <- dmTest(d, coef = "dietDR_Switch") #coef parameter indicates which columns of full design should be removed to get null design (eg. the treatment)
   })
   
-  pdf(paste(lines[i], "_DRIMSeq_Precision_Proportion_DTUest.pdf"), width = 10, height = 10)
-  print(plotPrecision(d))
-  #head(coefficients(d))
-  #head(DRIMSeq::results(d))
-  print(plotPValues(d))
-  print(plotPValues(d, level= "feature"))
-  dev.off()
+  # pdf(paste(lines[i], "_DRIMSeq_Precision_Proportion_DTUest.pdf"), width = 10, height = 10)
+  # print(plotPrecision(d))
+  # #head(coefficients(d))
+  # #head(DRIMSeq::results(d))
+  # print(plotPValues(d))
+  # print(plotPValues(d, level= "feature"))
+  # dev.off()
   
   #Save results tables, also as objects for later
   res <- DRIMSeq::results(d)
@@ -615,11 +615,16 @@ for(i in 1:length(lines))
   assign(paste(lines[i], "res.txp", sep = "_"), DRIMSeq::results(d, level="feature"))
   
   #Plot estimated proportions for one of the significant genes where evidence of isoform switching
-  #FOCUS ON stageR RESULTS FOR NOW!
-  #MAYBE WANT TO ADD THIS???
-  #idx <- which(res$adj_pvalue < 0.05)[1]
-  #res[idx,]
-  #plotProportions(d, gene_id = res$gene_id[idx], group_variable = "diet", plot_type = "lineplot")
+  idx <- which(res$adj_pvalue < 0.05)
+  res[idx,]
+  for(g in 1:length(idx))
+  {
+    DTUplot <- plotProportions(d, gene_id = res$gene_id[idx[g]], group_variable = "diet")
+    png(filename = paste(lines[i], idx[g], "plot.png", sep = "_"))
+    print(DTUplot)
+    dev.off()
+  }
+}
   
   #Turn p value NAs into 1s as they would cause issues for stage-wise analysis
   no.na <- function(x) ifelse(is.na(x), 1, x)
@@ -679,13 +684,12 @@ lines <- unique(ALLsamps$line)
 for(i in 1:length(lines))
 {
   oneline <- filter(sigg, line == lines[i])
-  oneline <- as.character(oneline$geneID, sep = "")
+  oneline <- unique(as.character(oneline$geneID, sep = ""))
   assign(paste("genelist", lines[i], sep = ""), oneline)
 }
-venn.diagram( x = list(genelist101, genelist177, genelist181, genelist195, genelist208, genelist228, genelist229, genelist235, genelist57, genelist83, genelist91, genelistM22),
-              category.names = c("101", "177", "181", "195", "208", "228", "229", "235", "57", "83", "91", "YW"),
-              filename = "VennTest.png",
-              output = TRUE)
+
+#Edited code above to fetch DTU plots for each line for each gene
+
 
 
   
