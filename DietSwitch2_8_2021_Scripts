@@ -515,14 +515,7 @@ ________________________________________________________________________________
 
 rm(list=ls())
 
-library(DRIMSeq)
-library(DEXSeq)
-library(stageR)
-library(tximport)
-library(txdbmaker)
-library(GenomicFeatures)
-library(dplyr)
-library(ggplot2)
+
 
 #ImportiggVennDiagram#Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
@@ -534,7 +527,7 @@ overall_drim.padj <- setNames(data.frame(matrix(ncol = 5, nrow = 0)), c("line", 
 
 for(i in 1:length(lines))
 {
-  #i = 2
+  #i = 12
   print(lines[i])
   samps <- filter(ALLsamps, line == lines[i])
   files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
@@ -624,7 +617,6 @@ for(i in 1:length(lines))
     print(DTUplot)
     dev.off()
   }
-}
   
   #Turn p value NAs into 1s as they would cause issues for stage-wise analysis
   no.na <- function(x) ifelse(is.na(x), 1, x)
