@@ -522,8 +522,10 @@ library(tximport)
 library(txdbmaker)
 library(GenomicFeatures)
 library(dplyr)
+library(ggplot2)
+library(VennDiagram)
 
-#Importing counts
+#ImportiggVennDiagram#Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
 ALLsamps <- read.csv("DS2_8_2021_samples.csv")
 #Run analysis for each line individually to loop through - currently don't know how to use ~diet+line model so do separately for now
@@ -614,6 +616,7 @@ for(i in 1:length(lines))
   
   #Plot estimated proportions for one of the significant genes where evidence of isoform switching
   #FOCUS ON stageR RESULTS FOR NOW!
+  #MAYBE WANT TO ADD THIS???
   #idx <- which(res$adj_pvalue < 0.05)[1]
   #res[idx,]
   #plotProportions(d, gene_id = res$gene_id[idx], group_variable = "diet", plot_type = "lineplot")
@@ -655,14 +658,41 @@ for(i in 1:length(lines))
   #adjusted p-values and transcript adjusted p-values, where the adjustment was performed independently.
   drim.padj$line = paste(lines[i])
   drim.padj <- drim.padj[,c(5, 1, 2, 3, 4)]
+  write.csv(drim.padj, paste(lines[i], "_drimpadj_DTU.csv", sep =""))
   overall_drim.padj <- rbind(overall_drim.padj, drim.padj)
 }  
   
+write.csv(overall_drim.padj, "AllLines_drimpadj_DTU.csv")
+
+##-------Just plotting
+#rm(list=ls())
+setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
+allpadj <- read.csv('AllLines_drimpadj_DTU.csv')
+sigg <- filter(allpadj, gene < 0.05)
+sigg <- sigg[,c(2,3,4,5,6)]
+
+unique(sigg$geneID)
+unique(sigg$txID)
+
+ALLsamps <- read.csv("DS2_8_2021_samples.csv")
+lines <- unique(ALLsamps$line)
+for(i in 1:length(lines))
+{
+  oneline <- filter(sigg, line == lines[i])
+  oneline <- as.character(oneline$geneID, sep = "")
+  assign(paste("genelist", lines[i], sep = ""), oneline)
+}
+venn.diagram( x = list(genelist101, genelist177, genelist181, genelist195, genelist208, genelist228, genelist229, genelist235, genelist57, genelist83, genelist91, genelistM22),
+              category.names = c("101", "177", "181", "195", "208", "228", "229", "235", "57", "83", "91", "YW"),
+              filename = "VennTest.png",
+              output = TRUE)
+
+
   
- 
   
-  
-  
+
+
+
    
 #BELOW NOT RUN FOR POSTER DATA
   
