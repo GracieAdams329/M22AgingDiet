@@ -636,6 +636,7 @@ for(i in 1:length(lines))
   overall_DTU <- rbind(overall_DTU, DTUgenes)
 
   write.csv(overall_DTU, "SigDTUgenes.csv")
+  
   #If didn't manage to do this:
   plotlist <- as.data.frame(list.files(path=".", pattern = "_plot.pdf", all.files = FALSE, full.names = FALSE))
   colnames(plotlist)[1] <- "plotlist"
@@ -646,7 +647,8 @@ for(i in 1:length(lines))
   
   unique(plotlist$geneID)
   genecounts <- as.data.frame(table(plotlist$geneID))
- 
+  multiplegenes <- genecounts %>% filter(Freq > 1)
+  
   
   
   #JUST UP TO HERE FOR NOW FOR POSTER RESULTS
@@ -654,6 +656,10 @@ for(i in 1:length(lines))
   no.na <- function(x) ifelse(is.na(x), 1, x)
   res$pvalue <- no.na(res$pvalue)
   res.txp$pvalue <- no.na(res.txp$pvalue)
+  
+  
+  
+  
   
   
   
