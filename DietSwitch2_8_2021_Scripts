@@ -513,17 +513,28 @@ ________________________________________________________________________________
 #BiocManager::install("tximport")
 #BiocManager::install("txdbmaker")
 
+library(DRIMSeq)
+library(DEXSeq)
+library(stageR)
+library(tximport)
+library(txdbmaker)
+library(GenomicFeatures)
+library(dplyr)
+library(ggplot2)
+library(splitstackshape)
+
 rm(list=ls())
 
 
 
-#ImportiggVennDiagram#Importing counts
+#Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
 ALLsamps <- read.csv("DS2_8_2021_samples.csv")
 #Run analysis for each line individually to loop through - currently don't know how to use ~diet+line model so do separately for now
 lines <- unique(ALLsamps$line)
 #Set up overall DF to store results
 overall_drim.padj <- setNames(data.frame(matrix(ncol = 5, nrow = 0)), c("line", "geneID", "txID", "gene", "transcript"))
+overall_DTU <- setNames(data.frame(matrix(ncol = 6, nrow = 0)), c("line", "gene_id", "lr", "df", "pvalue", "adj_pvalue"))
 
 for(i in 1:length(lines))
 {
@@ -565,16 +576,17 @@ for(i in 1:length(lines))
   #DRIMSeq
   d <- dmDSdata(counts = counts, samples = samps)
   d
-  #Filtering
-  n = nrow(samps) #no. samples
-  if (n < 6) {n.small <- 2} else if (n == 6) {n.small <- 3} #sample size of smallest group - accounts for some samples being omitted
-  #For a transcript to be retained, we require that:
-  d <- dmFilter(d,
-                min_samps_feature_expr = n.small, min_feature_expr = 1, #it has a count of at least X in at least n.small samples
-                min_samps_feature_prop = n.small, min_feature_prop = 0.01, #it has a relative abundance proportion of at least X in at least n.small samples
-                min_samps_gene_expr = n, min_gene_expr = 1) #the total count of corresponding gene is at least X in all n samples
-  d
-  #The two count filters are the only ones used in the original DRIMSeq vignette
+  # #Filtering
+  # n = nrow(samps) #no. samples
+  # if (n < 6) {n.small <- 2} else if (n == 6) {n.small <- 3} #sample size of smallest group - accounts for some samples being omitted
+  # #For a transcript to be retained, we require that:
+  # d <- dmFilter(d,
+  #               min_samps_feature_expr = n.small, min_feature_expr = X, #it has a count of at least X in at least n.small samples
+  #               min_samps_feature_prop = n.small, min_feature_prop = X, #it has a relative abundance proportion of at least X in at least n.small samples
+  #               min_samps_gene_expr = n, min_gene_expr = X) #the total count of corresponding gene is at least X in all n samples
+  # d
+  # #The two count filters are the only ones used in the original DRIMSeq vignette
+  
   #Only genes that have >1 isoform since we are looking at DTU
   #To see how many of the remaining genes have N isoforms:
   table(table(counts(d)$gene_id))
@@ -604,20 +616,39 @@ for(i in 1:length(lines))
   #Save results tables, also as objects for later
   res <- DRIMSeq::results(d)
   res.txp <- DRIMSeq::results(d, level="feature")
-  assign(paste(lines[i], "res", sep = "_"), DRIMSeq::results(d))
-  assign(paste(lines[i], "res.txp", sep = "_"), DRIMSeq::results(d, level="feature"))
+  #assign(paste(lines[i], "res", sep = "_"), DRIMSeq::results(d))
+  #assign(paste(lines[i], "res.txp", sep = "_"), DRIMSeq::results(d, level="feature"))
   
   #Plot estimated proportions for one of the significant genes where evidence of isoform switching
-  idx <- which(res$adj_pvalue < 0.05)
+  idx <- which(res$adj_pvalue < 0.1)
   res[idx,]
   for(g in 1:length(idx))
   {
     DTUplot <- plotProportions(d, gene_id = res$gene_id[idx[g]], group_variable = "diet")
-    png(filename = paste(lines[i], idx[g], "plot.png", sep = "_"))
+    pdf(file = paste(lines[i], res$gene_id[idx[g]], "plot.pdf", sep = "_"))
     print(DTUplot)
     dev.off()
   }
   
+  DTUgenes <- res[idx,]
+  DTUgenes$line = paste(lines[i])
+  DTUgenes <- DTUgenes[,c(6, 1, 2, 3, 4, 5)]
+  overall_DTU <- rbind(overall_DTU, DTUgenes)
+
+  write.csv(overall_DTU, "SigDTUgenes.csv")
+  #If didn't manage to do this:
+  plotlist <- as.data.frame(list.files(path=".", pattern = "_plot.pdf", all.files = FALSE, full.names = FALSE))
+  colnames(plotlist)[1] <- "plotlist"
+  plotlist <- cSplit(plotlist, 'plotlist', sep = "_")
+  plotlist <- plotlist[,c(1,2)]
+  colnames(plotlist)[1] <- "line"
+  colnames(plotlist)[2] <- "geneID"
+  
+  unique(plotlist$geneID)
+ 
+  
+  
+  #JUST UP TO HERE FOR NOW FOR POSTER RESULTS
   #Turn p value NAs into 1s as they would cause issues for stage-wise analysis
   no.na <- function(x) ifelse(is.na(x), 1, x)
   res$pvalue <- no.na(res$pvalue)
@@ -660,6 +691,8 @@ for(i in 1:length(lines))
 }  
   
 write.csv(overall_drim.padj, "AllLines_drimpadj_DTU.csv")
+
+
 
 ##-------Just plotting
 #rm(list=ls())
