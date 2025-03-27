@@ -645,6 +645,7 @@ for(i in 1:length(lines))
   colnames(plotlist)[2] <- "geneID"
   
   unique(plotlist$geneID)
+  genecounts <- as.data.frame(table(plotlist$geneID))
  
   
   
