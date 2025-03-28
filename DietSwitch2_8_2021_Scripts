@@ -640,6 +640,9 @@ for(i in 1:length(lines))
   }
 } #Hash this out if running entire code - this is just used to get graphs for the poster
 write.csv(overall_DTU, "SigDTUgenes.csv")
+unique(overall_DTU$gene_id)
+genecounts <- as.data.frame(table(overall_DTU$gene_id))
+multiplegenes <- genecounts %>% filter(Freq > 1)
   
     # #If didn't manage to do this:
     # plotlist <- as.data.frame(list.files(path=".", pattern = "_plot.pdf", all.files = FALSE, full.names = FALSE))
