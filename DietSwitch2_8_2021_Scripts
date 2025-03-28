@@ -527,6 +527,8 @@ rm(list=ls())
 
 
 
+
+##-------FOR RUNNING LINES INDIVIDUALLY USING SINGLE MODEL ~DIET
 #Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
 ALLsamps <- read.csv("DS2_8_2021_samples.csv")
@@ -538,7 +540,7 @@ overall_DTU <- setNames(data.frame(matrix(ncol = 6, nrow = 0)), c("line", "gene_
 
 for(i in 1:length(lines))
 {
-  #i = 12
+  #i = 1
   print(lines[i])
   samps <- filter(ALLsamps, line == lines[i])
   files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
@@ -622,32 +624,34 @@ for(i in 1:length(lines))
   #Plot estimated proportions for one of the significant genes where evidence of isoform switching
   idx <- which(res$adj_pvalue < 0.1)
   res[idx,]
-  for(g in 1:length(idx))
-  {
-    DTUplot <- plotProportions(d, gene_id = res$gene_id[idx[g]], group_variable = "diet")
-    pdf(file = paste(lines[i], res$gene_id[idx[g]], "plot.pdf", sep = "_"))
-    print(DTUplot)
-    dev.off()
+  if (nrow(res[idx,]) > 0){ #not tested whether this skips the empty DF yet
+    for(g in 1:length(idx))
+    {
+      DTUplot <- plotProportions(d, gene_id = res$gene_id[idx[g]], group_variable = "diet", plot_type = "boxplot1", order_features = FALSE)
+      pdf(file = paste(lines[i], res$gene_id[idx[g]], "plot.pdf", sep = "_"))
+      print(DTUplot)
+      dev.off()
+    }
+    
+    DTUgenes <- res[idx,]
+    DTUgenes$line = paste(lines[i])
+    DTUgenes <- DTUgenes[,c(6, 1, 2, 3, 4, 5)]
+    overall_DTU <- rbind(overall_DTU, DTUgenes)
   }
+} #Hash this out if running entire code - this is just used to get graphs for the poster
+write.csv(overall_DTU, "SigDTUgenes.csv")
   
-  DTUgenes <- res[idx,]
-  DTUgenes$line = paste(lines[i])
-  DTUgenes <- DTUgenes[,c(6, 1, 2, 3, 4, 5)]
-  overall_DTU <- rbind(overall_DTU, DTUgenes)
-
-  write.csv(overall_DTU, "SigDTUgenes.csv")
-  
-  #If didn't manage to do this:
-  plotlist <- as.data.frame(list.files(path=".", pattern = "_plot.pdf", all.files = FALSE, full.names = FALSE))
-  colnames(plotlist)[1] <- "plotlist"
-  plotlist <- cSplit(plotlist, 'plotlist', sep = "_")
-  plotlist <- plotlist[,c(1,2)]
-  colnames(plotlist)[1] <- "line"
-  colnames(plotlist)[2] <- "geneID"
-  
-  unique(plotlist$geneID)
-  genecounts <- as.data.frame(table(plotlist$geneID))
-  multiplegenes <- genecounts %>% filter(Freq > 1)
+    # #If didn't manage to do this:
+    # plotlist <- as.data.frame(list.files(path=".", pattern = "_plot.pdf", all.files = FALSE, full.names = FALSE))
+    # colnames(plotlist)[1] <- "plotlist"
+    # plotlist <- cSplit(plotlist, 'plotlist', sep = "_")
+    # plotlist <- plotlist[,c(1,2)]
+    # colnames(plotlist)[1] <- "line"
+    # colnames(plotlist)[2] <- "geneID"
+    # 
+    # unique(plotlist$geneID)
+    # genecounts <- as.data.frame(table(plotlist$geneID))
+    # multiplegenes <- genecounts %>% filter(Freq > 1)
   
   
   
