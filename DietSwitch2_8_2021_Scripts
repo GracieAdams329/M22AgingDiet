@@ -563,7 +563,6 @@ cts <- as.data.frame(cts)
 cts <- tibble::rownames_to_column(cts, "feature_id")
 counts <- merge(counts, cts, by = "feature_id")
 
-#TRYING WITH 'BATCH EFFECTS' METHOD FROM GUIDE 5.3 TO SEE IF WE CAN HAVE MORE COMPLEX MODEL
 #DRIMSeq
 d <- dmDSdata(counts = counts, samples = samps)
 d
@@ -571,8 +570,10 @@ d
 #Filtering
 #For a transcript to be retained, we require that:
 d <- dmFilter(d,
-              min_feature_expr = 1,
-              min_gene_expr = 1)
+              min_samps_gene_expr = 69,
+              min_samps_feature_expr = 2,
+              min_feature_expr = 10,
+              min_gene_expr = 10)
 d
 
 #Only genes that have >1 isoform since we are looking at DTU
@@ -582,7 +583,7 @@ table(table(counts(d)$gene_id))
 #Precision, proportion and DTU estimation
 #Design matrix
 #Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
-design_full <- model.matrix(~ -1 + diet + line, data = DRIMSeq::samples(d))
+design_full <- model.matrix(~ diet + line, data = DRIMSeq::samples(d))
 
 #Following 3 functions estimate model parameters and test for DTU
 #Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
