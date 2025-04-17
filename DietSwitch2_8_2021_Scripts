@@ -512,6 +512,7 @@ ________________________________________________________________________________
 #BiocManager::install("stageR")
 #BiocManager::install("tximport")
 #BiocManager::install("txdbmaker")
+rm(list=ls())
 
 library(DRIMSeq)
 library(DEXSeq)
@@ -523,8 +524,6 @@ library(dplyr)
 library(ggplot2)
 library(splitstackshape)
 library(conflicted)
-
-rm(list=ls())
 
 
 
@@ -562,8 +561,6 @@ counts <- data.frame(gene_id = txdf$GENEID, feature_id = txdf$TXNAME)
 cts <- as.data.frame(cts)
 cts <- tibble::rownames_to_column(cts, "feature_id")
 counts <- merge(counts, cts, by = "feature_id")
-#Must replace the 0 counts with NA to avoid introducing Inf values later
-counts[counts == 0] <- NA
 
 #DRIMSeq
 d <- dmDSdata(counts = counts, samples = samps)
@@ -577,6 +574,7 @@ d <- dmFilter(d,
               min_feature_expr = 10,
               min_gene_expr = 10)
 d
+#Can't set counts (above) as NA as then the dmFilter TRUE/FALSE check fails
 
 #Only genes that have >1 isoform since we are looking at DTU
 #To see how many of the remaining genes have N isoforms:
@@ -590,7 +588,7 @@ colnames(design_full)
 
 #Following 3 functions estimate model parameters and test for DTU
 #Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
-d <- dmPrecision(d, design = design_full, verbose = 1)
+d <- dmPrecision(d, design = design_full, verbose = 1, add_uniform = TRUE)
 d
 common_precision(d)
 
