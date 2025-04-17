@@ -582,7 +582,7 @@ table(table(counts(d)$gene_id))
 #Precision, proportion and DTU estimation
 #Design matrix
 #Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
-design_full <- model.matrix(~ 1 + diet + line, data = DRIMSeq::samples(d))
+design_full <- model.matrix(~ -1 + diet + line, data = DRIMSeq::samples(d))
 
 #Following 3 functions estimate model parameters and test for DTU
 #Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
