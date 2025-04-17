@@ -587,14 +587,15 @@ design_full <- model.matrix(~ diet + line, data = DRIMSeq::samples(d))
 colnames(design_full)
 
 #Following 3 functions estimate model parameters and test for DTU
+#Use add_uniform to add a small fractional count to zeros, (adding a uniform random variable between 0 and 0.1)
+#Allows analysis to include genes/features where count is 0 - otherwise it would throw an optim error
+
 #Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
 d <- dmPrecision(d, design = design_full, verbose = 1, add_uniform = TRUE)
 d
 common_precision(d)
-
 #Fit regression coefficients and perform null hypothesis testing on the coefficient of interest
-d <- dmFit(dp, design = design_full, verbose = 1)
-
+d <- dmFit(d, design = design_full, verbose = 1, add_uniform = TRUE)
 #Testing for DTU
 d <- dmTest(d, design = design_full, verbose = 1)
 
@@ -615,9 +616,11 @@ plotPValues(d, level = "feature")
 res <- DRIMSeq::results(d)
 res.txp <- DRIMSeq::results(d, level="feature")
 
-#NEED TO UPDATE THE BELOW FOR THE NEW SCRIPT
 #Plot estimated proportions for one of the significant genes where evidence of isoform switching
 idx <- which(res$adj_pvalue < 0.05)
+#Currently empty at this stage
+
+#NEED TO UPDATE THE BELOW FOR THE NEW SCRIPT
 res[idx,]
 if (nrow(res[idx,]) > 0){ #not tested whether this skips the empty DF yet
   for(g in 1:length(idx))
