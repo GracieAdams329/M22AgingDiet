@@ -522,122 +522,110 @@ library(GenomicFeatures)
 library(dplyr)
 library(ggplot2)
 library(splitstackshape)
+library(conflicted)
 
 rm(list=ls())
 
 
 
-
-##-------FOR RUNNING LINES INDIVIDUALLY USING SINGLE MODEL ~DIET
 #Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
-ALLsamps <- read.csv("DS2_8_2021_samples.csv")
-#Run analysis for each line individually to loop through - currently don't know how to use ~diet+line model so do separately for now
-lines <- unique(ALLsamps$line)
-#Set up overall DF to store results
-overall_drim.padj <- setNames(data.frame(matrix(ncol = 5, nrow = 0)), c("line", "geneID", "txID", "gene", "transcript"))
-overall_DTU <- setNames(data.frame(matrix(ncol = 6, nrow = 0)), c("line", "gene_id", "lr", "df", "pvalue", "adj_pvalue"))
+samps <- read.csv("DS2_8_2021_samples.csv")
+samps <- dplyr::filter(samps, line == c("M22", "101"))
 
-for(i in 1:length(lines))
-{
-  #i = 1
-  print(lines[i])
-  samps <- filter(ALLsamps, line == lines[i])
-  files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
-  names(files) <- samps$sample_id
-  files
-  
-  txi <- tximport(files, type = "salmon", txOut = TRUE,
-                  countsFromAbundance = "scaledTPM")
-  cts <- txi$counts
-  cts <- cts[rowSums(cts) > 0,]
-  
-  #Transcript-to-gene mapping
-  #Need .gtf file from ensembl: https://ftp.ensembl.org/pub/release-109/gtf/drosophila_melanogaster/
-  gtf <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.gtf"
-  txdb.filename <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.sqlite"
-  txdb <- makeTxDbFromGFF(gtf)
-  #saveDb(txdb, txdb.filename)
-  #Once made this can be quickly reloaded (not totally sure what the benefit of this is yet? Maybe save externally to R?):
-  #txdb <- loadDb(txdb.filename)
-  txdf <- AnnotationDbi::select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID") #use select from AnnotationDbi NOT dplyr!
-  tab <- table(txdf$GENEID)
-  txdf$ntx <- tab[match(txdf$GENEID, names(tab))]
-  
-  
-  
-  ##-------Statistical analysis of differential transcript usage
-  ##-------DRIMSeq
-  #Can also account for batch effects in DRIMSeq if needed - THIS MAY BE AN OPTION FOR THE LINES??
-  #Data frame
-  counts <- data.frame(gene_id = txdf$GENEID, feature_id = txdf$TXNAME)
-  cts <- as.data.frame(cts)
-  cts <- tibble::rownames_to_column(cts, "feature_id")
-  counts <- merge(counts, cts, by = "feature_id")
-  
-  #DRIMSeq
-  d <- dmDSdata(counts = counts, samples = samps)
-  d
-  # #Filtering
-  # n = nrow(samps) #no. samples
-  # if (n < 6) {n.small <- 2} else if (n == 6) {n.small <- 3} #sample size of smallest group - accounts for some samples being omitted
-  # #For a transcript to be retained, we require that:
-  # d <- dmFilter(d,
-  #               min_samps_feature_expr = n.small, min_feature_expr = X, #it has a count of at least X in at least n.small samples
-  #               min_samps_feature_prop = n.small, min_feature_prop = X, #it has a relative abundance proportion of at least X in at least n.small samples
-  #               min_samps_gene_expr = n, min_gene_expr = X) #the total count of corresponding gene is at least X in all n samples
-  # d
-  # #The two count filters are the only ones used in the original DRIMSeq vignette
-  
-  #Only genes that have >1 isoform since we are looking at DTU
-  #To see how many of the remaining genes have N isoforms:
-  table(table(counts(d)$gene_id))
-  
-  #Precision, proportion and DTU estimation
-  #Design matrix
-  #Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
-  design_full <- model.matrix(~ diet, data = DRIMSeq::samples(d))
-  colnames(design_full)
-  
-  #Following 3 functions estimate model parameters and test for DTU
-  set.seed(1)
-  system.time({
-    d <- dmPrecision(d, design = design_full) #estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
-    d <- dmFit(d, design = design_full) #fit regression coefficients and perform null hypothesis testing on the coefficient of interest
-    d <- dmTest(d, coef = "dietDR_Switch") #coef parameter indicates which columns of full design should be removed to get null design (eg. the treatment)
-  })
-  
-  # pdf(paste(lines[i], "_DRIMSeq_Precision_Proportion_DTUest.pdf"), width = 10, height = 10)
-  # print(plotPrecision(d))
-  # #head(coefficients(d))
-  # #head(DRIMSeq::results(d))
-  # print(plotPValues(d))
-  # print(plotPValues(d, level= "feature"))
-  # dev.off()
-  
-  #Save results tables, also as objects for later
-  res <- DRIMSeq::results(d)
-  res.txp <- DRIMSeq::results(d, level="feature")
-  #assign(paste(lines[i], "res", sep = "_"), DRIMSeq::results(d))
-  #assign(paste(lines[i], "res.txp", sep = "_"), DRIMSeq::results(d, level="feature"))
-  
-  #Plot estimated proportions for one of the significant genes where evidence of isoform switching
-  idx <- which(res$adj_pvalue < 0.1)
-  res[idx,]
-  if (nrow(res[idx,]) > 0){ #not tested whether this skips the empty DF yet
-    for(g in 1:length(idx))
-    {
-      DTUplot <- plotProportions(d, gene_id = res$gene_id[idx[g]], group_variable = "diet", plot_type = "boxplot1", order_features = FALSE)
-      pdf(file = paste(lines[i], res$gene_id[idx[g]], "plot.pdf", sep = "_"))
-      print(DTUplot)
-      dev.off()
-    }
-    
-    DTUgenes <- res[idx,]
-    DTUgenes$line = paste(lines[i])
-    DTUgenes <- DTUgenes[,c(6, 1, 2, 3, 4, 5)]
-    overall_DTU <- rbind(overall_DTU, DTUgenes)
+files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
+names(files) <- samps$sample_id
+files
+
+txi <- tximport(files, type = "salmon", txOut = TRUE,
+                countsFromAbundance = "scaledTPM")
+cts <- txi$counts
+cts <- cts[rowSums(cts) > 0,]
+
+#Transcript-to-gene mapping
+#Need .gtf file from ensembl: https://ftp.ensembl.org/pub/release-109/gtf/drosophila_melanogaster/
+gtf <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.gtf"
+txdb.filename <- "Z:/simons_lab1/Shared/nanopore_output/Genomes_and_Transcriptomes/Drosophila_melanogaster.BDGP6.32.109.sqlite"
+txdb <- txdbmaker::makeTxDbFromGFF(gtf)
+#saveDb(txdb, txdb.filename)
+#Once made this can be quickly reloaded (not totally sure what the benefit of this is yet? Maybe save externally to R?):
+#txdb <- loadDb(txdb.filename)
+txdf <- AnnotationDbi::select(txdb, keys(txdb, "GENEID"), "TXNAME", "GENEID") #use select from AnnotationDbi NOT dplyr!
+tab <- table(txdf$GENEID)
+txdf$ntx <- tab[match(txdf$GENEID, names(tab))]
+
+
+
+##-------Statistical analysis of differential transcript usage
+##-------DRIMSeq
+#Data frame
+counts <- data.frame(gene_id = txdf$GENEID, feature_id = txdf$TXNAME)
+cts <- as.data.frame(cts)
+cts <- tibble::rownames_to_column(cts, "feature_id")
+counts <- merge(counts, cts, by = "feature_id")
+
+#TRYING WITH 'BATCH EFFECTS' METHOD FROM GUIDE 5.3 TO SEE IF WE CAN HAVE MORE COMPLEX MODEL
+#DRIMSeq
+d <- dmDSdata(counts = counts, samples = samps)
+d
+
+#Filtering
+#For a transcript to be retained, we require that:
+d <- dmFilter(d,
+              min_feature_expr = 1,
+              min_gene_expr = 1)
+d
+
+#Only genes that have >1 isoform since we are looking at DTU
+#To see how many of the remaining genes have N isoforms:
+table(table(counts(d)$gene_id))
+
+#Precision, proportion and DTU estimation
+#Design matrix
+#Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
+design_full <- model.matrix(~ diet + line, data = DRIMSeq::samples(d))
+colnames(design_full)
+
+#Following 3 functions estimate model parameters and test for DTU
+#Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
+d <- dmPrecision(d, design = design_full, verbose = 1)
+d
+common_precision(d)
+
+
+d <- dmFit(d, design = design_full) #fit regression coefficients and perform null hypothesis testing on the coefficient of interest
+d <- dmTest(d, coef = "dietDR_Switch") #coef parameter indicates which columns of full design should be removed to get null design (eg. the treatment)
+
+# pdf(paste(lines[i], "_DRIMSeq_Precision_Proportion_DTUest.pdf"), width = 10, height = 10)
+# print(plotPrecision(d))
+# #head(coefficients(d))
+# #head(DRIMSeq::results(d))
+# print(plotPValues(d))
+# print(plotPValues(d, level= "feature"))
+# dev.off()
+
+#Save results tables, also as objects for later
+res <- DRIMSeq::results(d)
+res.txp <- DRIMSeq::results(d, level="feature")
+#assign(paste(lines[i], "res", sep = "_"), DRIMSeq::results(d))
+#assign(paste(lines[i], "res.txp", sep = "_"), DRIMSeq::results(d, level="feature"))
+
+#Plot estimated proportions for one of the significant genes where evidence of isoform switching
+idx <- which(res$adj_pvalue < 0.1)
+res[idx,]
+if (nrow(res[idx,]) > 0){ #not tested whether this skips the empty DF yet
+  for(g in 1:length(idx))
+  {
+    DTUplot <- plotProportions(d, gene_id = res$gene_id[idx[g]], group_variable = "diet", plot_type = "boxplot1", order_features = FALSE)
+    pdf(file = paste(lines[i], res$gene_id[idx[g]], "plot.pdf", sep = "_"))
+    print(DTUplot)
+    dev.off()
   }
+  
+  DTUgenes <- res[idx,]
+  DTUgenes$line = paste(lines[i])
+  DTUgenes <- DTUgenes[,c(6, 1, 2, 3, 4, 5)]
+  overall_DTU <- rbind(overall_DTU, DTUgenes)
 } #Hash this out if running entire code - this is just used to get graphs for the poster
 write.csv(overall_DTU, "SigDTUgenes.csv")
 unique(overall_DTU$gene_id)
