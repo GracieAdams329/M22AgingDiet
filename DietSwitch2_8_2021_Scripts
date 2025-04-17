@@ -531,7 +531,6 @@ rm(list=ls())
 #Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
 samps <- read.csv("DS2_8_2021_samples.csv")
-samps <- dplyr::filter(samps, line == c("M22", "101"))
 
 files <- file.path("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/SalmonOut/",samps$sample_id,"_salmonout/quant.sf", fsep = "")
 names(files) <- samps$sample_id
@@ -584,6 +583,16 @@ table(table(counts(d)$gene_id))
 #Design matrix
 #Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
 design_full <- model.matrix(~ diet + line, data = DRIMSeq::samples(d))
+#Need to add column for 8% diet to avoid introduction of Inf/NAs when using the model - check which rows are 0 and 1 for dietDR_Switch
+#and make them opposite for dietRich_Control
+RCnums1 <- rep(1, 36)
+RCnums0 <- rep(0, 33)
+RCnums <- append(RCnums1, RCnums0)
+design_full <- cbind(design_full, c(RCnums))
+design_full <- as_tibble(design_full)
+design_full <- dplyr::rename(design_full, dietRich_Control = V14)
+design_full <- (design_full[,c(1, 14, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)])
+design_full <- as.matrix(design_full)
 colnames(design_full)
 
 #Following 3 functions estimate model parameters and test for DTU
