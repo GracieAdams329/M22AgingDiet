@@ -562,6 +562,8 @@ counts <- data.frame(gene_id = txdf$GENEID, feature_id = txdf$TXNAME)
 cts <- as.data.frame(cts)
 cts <- tibble::rownames_to_column(cts, "feature_id")
 counts <- merge(counts, cts, by = "feature_id")
+#Must replace the 0 counts with NA to avoid introducing Inf values later
+counts[counts == 0] <- NA
 
 #DRIMSeq
 d <- dmDSdata(counts = counts, samples = samps)
@@ -570,7 +572,7 @@ d
 #Filtering
 #For a transcript to be retained, we require that:
 d <- dmFilter(d,
-              min_samps_gene_expr = 69,
+              min_samps_gene_expr = 2,
               min_samps_feature_expr = 2,
               min_feature_expr = 10,
               min_gene_expr = 10)
@@ -584,6 +586,7 @@ table(table(counts(d)$gene_id))
 #Design matrix
 #Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
 design_full <- model.matrix(~ diet + line, data = DRIMSeq::samples(d))
+colnames(design_full)
 
 #Following 3 functions estimate model parameters and test for DTU
 #Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
@@ -591,14 +594,21 @@ d <- dmPrecision(d, design = design_full, verbose = 1)
 d
 common_precision(d)
 
+#Fit regression coefficients and perform null hypothesis testing on the coefficient of interest
+d <- dmFit(dp, design = design_full, verbose = 1)
 
-d <- dmFit(d, design = design_full) #fit regression coefficients and perform null hypothesis testing on the coefficient of interest
-d <- dmTest(d, coef = "dietDR_Switch") #coef parameter indicates which columns of full design should be removed to get null design (eg. the treatment)
+#Testing for DTU
+d <- dmTest(d, design = design_full, verbose = 1)
 
-# pdf(paste(lines[i], "_DRIMSeq_Precision_Proportion_DTUest.pdf"), width = 10, height = 10)
+head(coefficients(d))
+head(DRIMSeq::results(d))
+
+plotPrecision(d)
+plotPValues(d)
+plotPValues(d, level = "feature")
+
+# pdf("DRIMSeq_Precision_Proportion_DTUest.pdf"))
 # print(plotPrecision(d))
-# #head(coefficients(d))
-# #head(DRIMSeq::results(d))
 # print(plotPValues(d))
 # print(plotPValues(d, level= "feature"))
 # dev.off()
@@ -606,11 +616,10 @@ d <- dmTest(d, coef = "dietDR_Switch") #coef parameter indicates which columns o
 #Save results tables, also as objects for later
 res <- DRIMSeq::results(d)
 res.txp <- DRIMSeq::results(d, level="feature")
-#assign(paste(lines[i], "res", sep = "_"), DRIMSeq::results(d))
-#assign(paste(lines[i], "res.txp", sep = "_"), DRIMSeq::results(d, level="feature"))
 
+#NEED TO UPDATE THE BELOW FOR THE NEW SCRIPT
 #Plot estimated proportions for one of the significant genes where evidence of isoform switching
-idx <- which(res$adj_pvalue < 0.1)
+idx <- which(res$adj_pvalue < 0.05)
 res[idx,]
 if (nrow(res[idx,]) > 0){ #not tested whether this skips the empty DF yet
   for(g in 1:length(idx))
