@@ -584,7 +584,8 @@ table(table(counts(d)$gene_id))
 #Precision, proportion and DTU estimation
 #Design matrix
 #Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
-design_full <- model.matrix(~ diet + line, data = DRIMSeq::samples(d))
+design_full <- model.matrix(diet + line, data = DRIMSeq::samples(d))
+#NEED TO UNDERSTAND WHY INTERCEPT IS 1 FOR DGRP195 ON RICH CONTROL
 colnames(design_full)
 
 #Following 3 functions estimate model parameters and test for DTU:
