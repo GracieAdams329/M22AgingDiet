@@ -523,7 +523,7 @@ library(GenomicFeatures)
 library(dplyr)
 library(ggplot2)
 library(splitstackshape)
-library(conflicted)
+#library(conflicted)
 
 
 
@@ -576,94 +576,103 @@ d <- dmFilter(d,
 d
 #Downstream guide suggests (min_feature_prop = 0.1), DRIMSeq manual does not suggest it - may remove lowly expressed txs
 
-
 #Only genes that have >1 isoform since we are looking at DTU
 #To see how many of the remaining genes have N isoforms:
 table(table(counts(d)$gene_id))
 
-#Precision, proportion and DTU estimation
-#Design matrix
-#Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
-design_full <- model.matrix(diet + line, data = DRIMSeq::samples(d))
-#NEED TO UNDERSTAND WHY INTERCEPT IS 1 FOR DGRP195 ON RICH CONTROL
-colnames(design_full)
+#Analyse effect of diet for each line separately
+#Need to turn them back into dataframes to filter them
+dsamps <- as.data.frame(DRIMSeq::samples(d))
+dcounts <- as.data.frame(DRIMSeq::counts(d))
+cols <- as.factor(c("gene_id", "feature_id"))
+#Make overall DTU file
+overall_DTU <- setNames(data.frame(matrix(ncol = 6, nrow = 0)), c("line", "gene_id", "lr", "df", "pvalue", "adj_pvalue"))
 
-#Following 3 functions estimate model parameters and test for DTU:
-#Use add_uniform to add a small fractional count to zeros, (adding a uniform random variable between 0 and 0.1)
-#Allows analysis to include genes/features where count is 0 - otherwise it would throw an optim error
-
-#Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
-d <- dmPrecision(d, design = design_full, verbose = 1, add_uniform = TRUE)
-d
-#FROM 5.2.3 SECTION IN DRIMSEQ MANUAL CAN ALSO LOOK AT GENE EXPRESSION!
-common_precision(d)
-#Fit regression coefficients and perform null hypothesis testing on the coefficient of interest
-d <- dmFit(d, design = design_full, verbose = 1, add_uniform = TRUE)
-#Testing for DTU
-#LOOK AT 5.2.5 IN DRIMSEQ MANUAL AND CHAT TO MIRRE ABOUT IT - can use the design here?
-d <- dmTest(d, coef = "dietDR_Switch", verbose = 1) #want to do this by coefficient as opposed to the whole design
-#By just dietDR_Switch will explain the variation explained by the switch diet
-
-head(coefficients(d))
-head(DRIMSeq::results(d))
-
-plotPrecision(d)
-plotPValues(d)
-plotPValues(d, level = "feature")
-
-#Build results table. Generate a single p-value per gene, which tests whether there is any differential transcript
-#usage within the gene, or a single p-value per transcript, which tests whether the proportions for this transcript
-#changed within the gene
-res <- DRIMSeq::results(d)
-res.txp <- DRIMSeq::results(d, level="feature")
-
-#Plot estimated proportions for one of the significant genes where evidence of isoform switching
-idx <- which(res$adj_pvalue < 0.05)
-
-#To get plots out for the significant genes
-res[idx,]
+#Loop DTU analysis for each line
+lines <- unique(dsamps$line)
+#i = 1
+for(i in (1:length(lines)))
+  {
+  samps <- dplyr::filter(dsamps, line == lines[i])
+  #Loop to fetch count data for each sample. Need to forget the missing factors
+  samps$sample_id <- samps$sample_id[ , drop = TRUE]
+  samps
+  ids <- unique(samps$sample_id)
+  ids <- factor(c(cols, ids))
+  counts <- dcounts %>% dplyr::select(ids)
+  #Remove rows with 0 reads as done for cts earlier
+  counts <- counts[rowSums(counts[,-c(1,2)]) > 0,]
+  
+  d <- dmDSdata(counts = counts, samples = samps)
+  DRIMSeq::samples(d)
+  
+  #Precision, proportion and DTU estimation
+  #Design matrix
+  #Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
+  design_full <- model.matrix(~ diet, data = DRIMSeq::samples(d))
+  
+  colnames(design_full)
+  
+  #Following 3 functions estimate model parameters and test for DTU:
+  #Use add_uniform to add a small fractional count to zeros, (adding a uniform random variable between 0 and 0.1)
+  #Allows analysis to include genes/features where count is 0 - otherwise it would throw an optim error
+  
+  #Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
+  d <- dmPrecision(d, design = design_full, verbose = 1, add_uniform = TRUE)
+  #FROM 5.2.3 SECTION IN DRIMSEQ MANUAL CAN ALSO LOOK AT GENE EXPRESSION!
+  common_precision(d)
+  #Fit regression coefficients and perform null hypothesis testing on the coefficient of interest
+  d <- dmFit(d, design = design_full, verbose = 1, add_uniform = TRUE)
+  #Testing for DTU
+  #LOOK AT 5.2.5 IN DRIMSEQ MANUAL AND CHAT TO MIRRE ABOUT IT - can use the design here?
+  d <- dmTest(d, coef = "dietDR_Switch", verbose = 1) #want to do this by coefficient as opposed to the whole design
+  #Coef specifies columns to remove to get the null model
+  head(coefficients(d))
+  head(DRIMSeq::results(d))
+  
+  #plotPrecision(d)
+  #plotPValues(d)
+  #plotPValues(d, level = "feature")
+  
+  #Build results table. Generate a single p-value per gene, which tests whether there is any differential transcript
+  #usage within the gene, or a single p-value per transcript, which tests whether the proportions for this transcript
+  #changed within the gene
+  res <- DRIMSeq::results(d)
+  #res.txp <- DRIMSeq::results(d, level="feature")
+  
+  #Plot estimated proportions for one of the significant genes where evidence of isoform switching
+  idx <- which(res$adj_pvalue < 0.05)
+  
+  #To get plots out for the significant genes
+  res[idx,]
+  if (nrow(res[idx,]) > 0){ #not tested whether this skips the empty DF yet
   for(g in 1:length(idx))
   {
-    DTUplot <- plotProportions(d, gene_id = res$gene_id[idx[g]], group_variable = "diet", plot_type = "boxplot1", order_features = FALSE)
-    assign(paste("DTUplot", res$gene_id[idx[g]], sep = "_"), DTUplot)
-  }
-
-pdf(file = "DS21_DietplusLine_coefdietDR_Switch_DTUplot.pdf")
-print(DTUplot_FBgn0014391)
-print(DTUplot_FBgn0020306)
-print(DTUplot_FBgn0001218)
-print(DTUplot_FBgn0014184)
-dev.off()
-  
-#TO HERE FOR NOW 
-
-  
-  
+    #g = 1
+    #Need to plot it first or it saves a blank png
+    plot <- DRIMSeq::plotProportions(d, gene_id = res$gene_id[idx[g]], group_variable = "diet", plot_type = "boxplot1", order_features = FALSE)
+    png(paste(lines[i], res$gene_id[idx[g]], "DS21_DTUplot.png", sep = "_"))
+    print(plot)
+    dev.off()
+  }}
   DTUgenes <- res[idx,]
   DTUgenes$line = paste(lines[i])
   DTUgenes <- DTUgenes[,c(6, 1, 2, 3, 4, 5)]
   overall_DTU <- rbind(overall_DTU, DTUgenes)
-} #Hash this out if running entire code - this is just used to get graphs for the poster
+}
+overall_DTU
 write.csv(overall_DTU, "SigDTUgenes.csv")
 unique(overall_DTU$gene_id)
 genecounts <- as.data.frame(table(overall_DTU$gene_id))
-multiplegenes <- genecounts %>% filter(Freq > 1)
-  
-    # #If didn't manage to do this:
-    # plotlist <- as.data.frame(list.files(path=".", pattern = "_plot.pdf", all.files = FALSE, full.names = FALSE))
-    # colnames(plotlist)[1] <- "plotlist"
-    # plotlist <- cSplit(plotlist, 'plotlist', sep = "_")
-    # plotlist <- plotlist[,c(1,2)]
-    # colnames(plotlist)[1] <- "line"
-    # colnames(plotlist)[2] <- "geneID"
-    # 
-    # unique(plotlist$geneID)
-    # genecounts <- as.data.frame(table(plotlist$geneID))
-    # multiplegenes <- genecounts %>% filter(Freq > 1)
+multiplegenes <- genecounts %>% dplyr::filter(Freq > 1)
+write.csv(multiplegenes, "SharedSigDTUgenes.csv")
+
+
+
+#UP TO HERE FOR NOW
   
   
-  
-  #JUST UP TO HERE FOR NOW FOR POSTER RESULTS
+
   #Turn p value NAs into 1s as they would cause issues for stage-wise analysis
   no.na <- function(x) ifelse(is.na(x), 1, x)
   res$pvalue <- no.na(res$pvalue)
