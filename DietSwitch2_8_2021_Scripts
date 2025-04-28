@@ -655,13 +655,15 @@ for(i in (1:length(lines)))
     print(plot)
     dev.off()
   }}
-  DTUgenes <- res[idx,]
+  #DTUgenes <- res[idx,]
+  DTUgenes <- res
   DTUgenes$line = paste(lines[i])
   DTUgenes <- DTUgenes[,c(6, 1, 2, 3, 4, 5)]
   overall_DTU <- rbind(overall_DTU, DTUgenes)
 }
 overall_DTU
-write.csv(overall_DTU, "SigDTUgenes.csv")
+write.csv(overall_DTU, "DTUgenes.csv")
+
 unique(overall_DTU$gene_id)
 genecounts <- as.data.frame(table(overall_DTU$gene_id))
 multiplegenes <- genecounts %>% dplyr::filter(Freq > 1)
