@@ -525,7 +525,7 @@ library(ggplot2)
 library(splitstackshape)
 #library(conflicted)
 
-
+##NEED TO ADD ON REMOVAL OF NAS FROM RES
 
 #Importing counts
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
@@ -579,6 +579,45 @@ d
 #Only genes that have >1 isoform since we are looking at DTU
 #To see how many of the remaining genes have N isoforms:
 table(table(counts(d)$gene_id))
+
+#To get DTU p values for GO ontology for additive model:
+#Precision, proportion and DTU estimation
+#Design matrix
+#Check csv is ordered so 'Rich_Control' samples are above 'DR_Switch' for levelling purposes!
+design_full <- model.matrix(~ diet + line, data = DRIMSeq::samples(d))
+
+colnames(design_full)
+
+#Following 3 functions estimate model parameters and test for DTU:
+#Use add_uniform to add a small fractional count to zeros, (adding a uniform random variable between 0 and 0.1)
+#Allows analysis to include genes/features where count is 0 - otherwise it would throw an optim error
+
+#Estimate the precision, which is related to the dispersion in the Dirichlet Multinomial model
+d <- dmPrecision(d, design = design_full, verbose = 1, add_uniform = TRUE)
+#FROM 5.2.3 SECTION IN DRIMSEQ MANUAL CAN ALSO LOOK AT GENE EXPRESSION!
+common_precision(d)
+#Fit regression coefficients and perform null hypothesis testing on the coefficient of interest
+d <- dmFit(d, design = design_full, verbose = 1, add_uniform = TRUE)
+#Testing for DTU
+#LOOK AT 5.2.5 IN DRIMSEQ MANUAL AND CHAT TO MIRRE ABOUT IT - can use the design here?
+d <- dmTest(d, coef = c("dietDR_Switch", "line57", "line181", "line228", "line208", "line101", "line229", "line235", "line177", "lineM22", "line91", "line83"), verbose = 1) #want to do this by coefficient as opposed to the whole design
+#Coef specifies columns to remove to get the null model
+head(coefficients(d))
+head(DRIMSeq::results(d))
+
+#plotPrecision(d)
+#plotPValues(d)
+#plotPValues(d, level = "feature")
+
+#Build results table. Generate a single p-value per gene, which tests whether there is any differential transcript
+#usage within the gene, or a single p-value per transcript, which tests whether the proportions for this transcript
+#changed within the gene
+res <- DRIMSeq::results(d)
+#res.txp <- DRIMSeq::results(d, level="feature")
+write.csv(res, "DietplusLine_DTUgenes.csv")
+    
+    
+    
 
 #Analyse effect of diet for each line separately
 #Need to turn them back into dataframes to filter them
@@ -639,6 +678,7 @@ for(i in (1:length(lines)))
   #changed within the gene
   res <- DRIMSeq::results(d)
   #res.txp <- DRIMSeq::results(d, level="feature")
+  write.csv(res, paste(lines[i], "_DTUgenes.csv"))
   
   #Plot estimated proportions for one of the significant genes where evidence of isoform switching
   idx <- which(res$adj_pvalue < 0.05)
@@ -664,10 +704,10 @@ for(i in (1:length(lines)))
 overall_DTU
 write.csv(overall_DTU, "DTUgenes.csv")
 
-unique(overall_DTU$gene_id)
-genecounts <- as.data.frame(table(overall_DTU$gene_id))
-multiplegenes <- genecounts %>% dplyr::filter(Freq > 1)
-write.csv(multiplegenes, "SharedSigDTUgenes.csv")
+sig_overall_DTU <- overall_DTU %>% dplyr::filter(adj_pvalue < 0.06)
+genecounts <- as.data.frame(table(sig_overall_DTU$gene_id))
+#multiplegenes <- genecounts %>% dplyr::filter(Freq > 1)
+write.csv(genecounts, "Counts_sigDTUgenes.csv")
 
 
 
