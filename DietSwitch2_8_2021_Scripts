@@ -887,7 +887,7 @@ library(GO.db)
 library(org.Dm.eg.db)
 library(tidyverse)
 library(corrplot)
-#library(Hmisc)
+library(Hmisc)
 library(anndata)
 #https://www.datanovia.com/en/blog/venn-diagram-with-r-or-rstudio-a-million-ways/
 # library(ggvenn)
@@ -1052,51 +1052,47 @@ for(i in 1:length(linesthere))
 ##-------Correlation plot
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/")
 
-line83=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line83_edgeR.csv")
-line91=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line91_edgeR.csv")
-lineM22=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_LineM22_edgeR.csv")
-line177=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line177_edgeR.csv")
-line235=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line235_edgeR.csv")
-line229=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line229_edgeR.csv")
-line101=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line101_edgeR.csv")
-line208=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line208_edgeR.csv")
-line228=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line228_edgeR.csv")
-line181=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line181_edgeR.csv")
-line57=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line57_edgeR.csv")
-line195=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line195_edgeR.csv")
+line83 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line83_edgeR.csv")
+line91 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line91_edgeR.csv")
+lineM22 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_LineM22_edgeR.csv")
+line177 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line177_edgeR.csv")
+line235 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line235_edgeR.csv")
+line229 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line229_edgeR.csv")
+line101 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line101_edgeR.csv")
+line208 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line208_edgeR.csv")
+line228 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line228_edgeR.csv")
+line181 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line181_edgeR.csv")
+line57 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line57_edgeR.csv")
+line195 = read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line195_edgeR.csv")
 
 allFBgn <- rbind(line83, line91, lineM22, line177, line235, line229, line101, line208, line228, line181, line57, line195)
 allFBgn <- select(allFBgn, X)
 allFBgn = distinct(allFBgn)
-#TO HERE
-#names(allFBgn) = c("dummy", "X")
 
-total=merge(allFBgn,line83,by="X",all.x=T)
-total=merge(total,line91,by="X",suffixes=c(".83",".91"),all.x=T)
-total=merge(total,lineM22,by="X",all.x=T)
-total=merge(total,line177,by="X",suffixes=c(".M22",".177"),all.x=T)
-total=merge(total,line235,by="X",all.x=T)
-total=merge(total,line229,by="X",suffixes=c(".235",".229"),all.x=T)
-total=merge(total,line101,by="X",all.x=T)
-total=merge(total,line208,by="X",suffixes=c(".101",".208"),all.x=T)
-total=merge(total,line228,by="X",all.x=T)
-total=merge(total,line181,by="X",suffixes=c(".228",".181"),all.x=T)
-total=merge(total,line57,by="X",all.x=T)
-total=merge(total,line195,by="X",suffixes=c(".57",".195"),all.x=T)
-str(total)
+total = merge(allFBgn, line83, by = "X", all.x = T)
+total = merge(total, line91, by = "X", suffixes = c(".83", ".91"), all.x = T)
+total = merge(total, lineM22, by = "X", all.x = T)
+total = merge(total, line177, by = "X", suffixes = c(".M22", ".177"), all.x = T)
+total = merge(total, line235, by = "X", all.x = T)
+total = merge(total, line229, by = "X", suffixes = c(".235", ".229"), all.x = T)
+total = merge(total, line101, by = "X", all.x = T)
+total = merge(total, line208, by = "X", suffixes = c(".101", ".208"), all.x = T)
+total = merge(total, line228, by = "X", all.x = T)
+total = merge(total, line181, by = "X", suffixes = c(".228", ".181"), all.x = T)
+total = merge(total, line57, by = "X", all.x = T)
+total = merge(total, line195, by = "X", suffixes = c(".57", ".195"), all.x = T)
 
 #logFC for each line
-names(total[,c(3,7,11,15,19,23,27,31,35,39,43,47)])
+names(total[,c(2,6,10,14,18,22,26,30,34,38,42,46)])
 
-chart.Correlation(total[,c(3,7,11,15,19,23,27,31,35,39,43,47)], histogram = T, method = "spearman")
-
-cor.test(total[,43], total[,47], method = "spearman", na.omit = T)
-cor(total[,43], total[,47], use = "pairwise.complete.obs", method = "spearman")
+#Can't remember what the below was for - maybe comparing two speciifc lines at a time??
+# cor.test(total[,43], total[,47], method = "spearman", na.omit = T)
+# cor(total[,43], total[,47], use = "pairwise.complete.obs", method = "spearman")
 
 #To make nice graph
 #http://www.sthda.com/english/wiki/wiki.php?id_contents=7786
 #Make correlation coefficients table using only the logFC info
-ctotal <- cor(total[,c(3,7,11,15,19,23,27,31,35,39,43,47)], use = "pairwise.complete.obs", method = "spearman")
+ctotal <- cor(total[,c(2,6,10,14,18,22,26,30,34,38,42,46)], use = "pairwise.complete.obs", method = "spearman")
 #Correlation significance values (p-value)
 rtotal <- rcorr(ctotal)
 #Format correlation matrix
@@ -1112,6 +1108,7 @@ flattenCorrMatrix <- function(ctotal, rtotal) {
 
 flatcm <- flattenCorrMatrix(rtotal$r, rtotal$P)
 
+#Rename col/row names as needed
 colnames(ctotal) <- gsub("logFC.","",colnames(ctotal))
 colnames(ctotal) <- gsub("M22","yw",colnames(ctotal))
 rownames(ctotal) <- gsub("logFC.","",rownames(ctotal))
@@ -1119,4 +1116,8 @@ rownames(ctotal) <- gsub("M22","yw",rownames(ctotal))
 
 corrplot(ctotal, method = "circle", type = "lower", diag = FALSE, order = "hclust")
 
+#To save both
+pdf("CorrelationPlots_DietSwitch2_8_2021_AllLines.pdf")
+chart.Correlation(total[,c(2,6,10,14,18,22,26,30,34,38,42,46)], histogram = T, method = "spearman")
 corrplot.mixed(ctotal)
+dev.off()
