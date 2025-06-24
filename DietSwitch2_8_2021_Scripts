@@ -867,9 +867,12 @@ ________________________________________________________________________________
 #R SCRIPT: Ballgown_EdgeR_DE_Script_DietSwitch2021.R
 -------
 #Make sure you have the most up to date version of BiocManager etc
-# install.packages('Rtools')
+#Download and install the correct version of Rtools from: https://cran.rstudio.com/bin/windows/Rtools/
+# install.packages("pkgbuild")
+# library(pkgbuild)
+# pkgbuild::has_rtools()
 # install.packages('BiocManager')
-# BiocManager::install(version = '3.18')
+# BiocManager::install(version = '3.20')
 # library(BiocManager)
 # BiocManager::install("ballgown")
 # BiocManager::install("GO.db")
@@ -890,10 +893,12 @@ library(anndata)
 # library(ggvenn)
 # library(ggVennDiagram)
 # library(plotly)
+library(dplyr)
+library(PerformanceAnalytics)
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
 
 ##-------SETTING UP THE BALLGOWN OBJECT
-#We have already run tablemaker to create the ctab files as specified in the vignette.
+#We have already run tablemaker to create the ctab files as specified in the vignette when using StringTie as part of the minimap script.
 #Using the version mapped to the genome rather than our transcriptome as otherwise the gene names aren't correct.
 #The quasi-likelihood method is highly recommended for differential expression analyses of bulk RNA-seq data as it gives stricter error rate control by
 #accounting for the uncertainty in dispersion estimation. The likelihood ratio test can be useful in some special cases such as single cell RNA-seq and
@@ -902,7 +907,7 @@ setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_20
 #Move the .bam files into a BamFiles folder.
 
 #Read in treatments for sample names
-pheno <- read.csv("DS2_8_2021_SampleNames_minus3.csv")
+pheno <- read.csv("DS2_8_2021_SampleNames.csv")
 #To order the pheno file alphabetically like the sample names will be in the bg object:
 pheno = pheno[order(pheno$samplename),]
 
@@ -1007,7 +1012,7 @@ for(i in 1:length(linesthere))
   #Estimate dispersion using Cox-Reid (CR) profile-adjusted likelihood method for general experiments with multiple factors. It fits GLMs with a design matrix to overcome
   #issues of multiple factors
   #Need to generate a design matrix
-  fordesignmatrix = read.csv('DS2_8_2021_SampleNames_minus3.csv')
+  fordesignmatrix = read.csv('DS2_8_2021_SampleNames.csv')
   #To order the design matrix alphabetically:
   fordesignmatrix = fordesignmatrix[order(fordesignmatrix$samplename),]
   #Select relevant samples
@@ -1030,290 +1035,89 @@ for(i in 1:length(linesthere))
   fitglm <- glmFit(estdisp, design)
   lrtglm <- glmLRT(fitglm, coef = 2)
   #topTags(lrtglm, n = 20)
-  
-  #write.csv(lrtglm$table, paste("lrtglm_DGRP2_8_TopGenes_Line", currentline, "_edgeR.csv", sep = ''))
-  
-  
-  
-  
-  
-  ###GOT UP TO HERE!!!!!!! CHANGING NAMES ETC BUT NOT RUN UP TO HERE
-  
-  
-  
-  
-  
-  ##Splicing analysis
-  #Uing glmQLfit for this. (Might work with classic way too as above, lrt model)
-  sampleNames(bg)
-  exonexpr <- eexpr(bg)
-  transcript_id_by_exon = indexes(bg)$e2t$t_id[match(unique(indexes(bg)$e2t$e_id), indexes(bg)$e2t$e_id)]
-  transcript_id_by_gene = indexes(bg)$t2g$t_id #Transcript/gene mapping
-  geneID = indexes(bg)$t2g$g_id[match(transcript_id_by_exon, transcript_id_by_gene)]
-  exonID = row.names(exonexpr)
-  gns = as.data.frame(cbind(as.character(geneID), bg@expr$exon$chr, bg@expr$exon$start, bg@expr$exon$end, bg@expr$exon$strand, (bg@expr$exon$end-bg@expr$exon$start), bg@expr$exon$e_id))
-  names(gns) = c("GeneID", "Chr", "Start", "End", "Strand", "Length", "ExonID")
-  smpl = as.vector(colnames(exonexpr))
-  #Need to read in as matrix for it to work
-  cnts = as.matrix(exonexpr)
-  edg = DGEList(counts = cnts, samples=smpl, genes = gns, remove.zeros = T)
-  
-  keep <- rowSums(cpm(edg) >5) >=6
-  summary(keep)
-  edg <- edg[keep, , keep.lib.sizes=FALSE]
-  edg <- calcNormFactors(edg)
-  edg$samples
-  
-  fordesignmatrix = read.csv('DGRP2_8_2021_SampleNames.csv')
-  #Select relevant samples
-  fordesignmatrix = filter(fordesignmatrix, samplename == samples)
-  str(fordesignmatrix)
-  fordesignmatrix$diet = factor(fordesignmatrix$diet)
-  fordesignmatrix$diet = relevel(fordesignmatrix$diet, ref="8")
-  
-  design = model.matrix(~1+diet, data = fordesignmatrix)
-  rownames(design) = fordesignmatrix$samplename
-  design
-  
-  edg <- estimateDisp(edg, design, robust = TRUE) #Need to add disp to edg object
-  #This uses normalised edg again, just in this part of the script it's not a separate object called normedg
-  edg$common.dispersion
-  
-  fit3 <- glmFit(edg, design)
-  colnames(design)
-  fitsplice = diffSpliceDGE(fit3, coef=2,geneid=fit3$genes[,1], exonid=fit3$genes[,3])
-  topSplice <- topSpliceDGE(fitsplice, number=20) #Simes test
-  #To see exon-level testing for a gene
-  
-  
-  #Gene annotation
-  #To add Entrez Gene IDs - need to specify which package 'select' is coming from or it assumes Dplyr and gets an error
-  ann <- AnnotationDbi::select(org.Dm.eg.db,keys = as.vector(topSplice$GeneID), columns = c("FLYBASE","ENTREZID","SYMBOL","GENENAME"), keytype="FLYBASE")
-  #write.csv(cbind(ann,topSplice), paste("SPLICINGlrtglm_DGRP2_8_Top20Genes_Line", currentline, "_edgeR.csv", sep = ''))
-}
-
-
-
-##---------------------Saving csv to make correlation plots in merge script
-
-geneID = indexes(overallbg)$t2g$g_id[match(transcript_id_by_exon, transcript_id_by_gene)]
-geneID
-#write.csv(geneID, "allFBgnsindataset.csv")
-
-
-
-
-
-
-
-##---------------------Investigate exons expressed in different lines
-#For each gene for each line, do the following:
-#Choose number of relevant line to filter the overallbg
-linesthere = unique(pheno$line)
-
-for(i in 1:length(linesthere))
-{
-#i = 14 #Change this after you've saved the relevant pdf below
-#Filter out line
-currentline = linesthere[i]
-bg = subset(overallbg, "group.line == currentline", genomesubset = FALSE)
-samples = sampleNames(bg)
-#Get splicing info out as you do in the loop
-sampleNames(bg)
-exonexpr <- eexpr(bg)
-transcript_id_by_exon = indexes(bg)$e2t$t_id[match(unique(indexes(bg)$e2t$e_id), indexes(bg)$e2t$e_id)]
-transcript_id_by_gene = indexes(bg)$t2g$t_id #Transcript/gene mapping
-geneID = indexes(bg)$t2g$g_id[match(transcript_id_by_exon, transcript_id_by_gene)]
-exonID = row.names(exonexpr)
-gns = as.data.frame(cbind(as.character(geneID), bg@expr$exon$chr, bg@expr$exon$start, bg@expr$exon$end, bg@expr$exon$strand, (bg@expr$exon$end-bg@expr$exon$start), bg@expr$exon$e_id))
-names(gns) = c("GeneID", "Chr", "Start", "End", "Strand", "Length", "ExonID")
-smpl = as.vector(colnames(exonexpr))
-#Need to read in as matrix for it to work
-cnts = as.matrix(exonexpr)
-edg = DGEList(counts = cnts, samples=smpl, genes = gns, remove.zeros = T)
-
-keep <- rowSums(cpm(edg) >5) >=6
-summary(keep)
-edg <- edg[keep, , keep.lib.sizes=FALSE]
-edg <- calcNormFactors(edg)
-edg$samples
-
-fordesignmatrix = read.csv('DGRP2_8_2021_SampleNames.csv')
-#Select relevant samples
-fordesignmatrix = filter(fordesignmatrix, samplename == samples)
-str(fordesignmatrix)
-fordesignmatrix$diet = factor(fordesignmatrix$diet)
-fordesignmatrix$diet = relevel(fordesignmatrix$diet, ref="8")
-
-design = model.matrix(~1+diet, data = fordesignmatrix)
-rownames(design) = fordesignmatrix$samplename
-design
-
-edg <- estimateDisp(edg, design, robust = TRUE) #Need to add disp to edg object
-#This uses normalised edg again, just in this part of the script it's not a separate object called normedg
-edg$common.dispersion
-
-fit3 <- glmFit(edg, design)
-colnames(design)
-fitsplice = diffSpliceDGE(fit3, coef=2,geneid=fit3$genes[,1], exonid=fit3$genes[,3])
-
-#To look at the table of exons for a gene of interest:
-#CHECKGENES <- filter(fitsplice$genes, GeneID == "FBgn123456789")
-
-#Save the fitsplice info for each line
-#write.csv(fitsplice$genes, paste(currentline, "_fitsplice_allgenes.csv", sep = ""))
-
-#Write a new fitsplice file for each line to make a facet plot:
-#assign(paste("fitsplice", currentline, sep = ""), fitsplice)
-
-#Save png of Sarm FBgn0262579 for each line
-png(paste("Sarm_plotSpliceDGE_DGRP", currentline, ".png", sep = ""))
-plotSpliceDGE(fitsplice, geneid = "FBgn0262579", genecolname = "GeneID")
-dev.off()
-
-#Assign fitsplice it's own name ready to use for the simulation below
-assign(paste("fitsplice", currentline, sep = ""), fitsplice)
-}
-
-
-
-#SIMULATE HOW MANY GENES ARE EXPECTED TO SHARE ALTERNATIVE SPLICING BY CHANCE
-#Total no. genes can then be used to predict the expected number of genes that are alternatively spliced in several lines by chance for our simulation.
-#Merge the fitsplice for each line created above.
-overallfitsplicegenes <- bind_rows(fitsplice101$gene.genes, fitsplice177$gene.genes, fitsplice181$gene.genes, fitsplice195$gene.genes, fitsplice208$gene.genes, fitsplice228$gene.genes, fitsplice229$gene.genes, fitsplice235$gene.genes, fitsplice256$gene.genes, fitsplice42$gene.genes, fitsplice57$gene.genes, fitsplice83$gene.genes, fitsplice91$gene.genes, fitspliceM22$gene.genes)
-#Get number of unique genes out.
-length(unique(overallfitsplicegenes$GeneID))
-#5069 unique genes
-#Previously figured out how many genes only have one exon so can't be alt spliced, but can't seem to see where this came from as in the fitsplice
-#dataset, all genes have >1 exon because it's looking at splicing. Discount this for now and just simulate for 5069 genes.
-genes = 1:5069
-lines = 14
-sims = 10000
-top = 20
-
-resultsim=matrix(nrow=top*lines,ncol=sims)
-
-k=1
-while(k<(sims+1)){
-  
-  results=matrix(lines*top)
-  for (i in 1:lines){
-    results[(1:top)+(i-1)*top]=sample(genes,size=top)
-  }
-  
-  resul_form=data.frame(unclass(sort(table(results))))[,1]
-  resultsim[((top*lines)-length(resul_form)+1):(top*lines),k]=resul_form
-  
-  k=k+1
+  #Total number of DE genes at 5% FDR:
+  summary(decideTests(lrtglm))
+  pdf(paste("DEgenes5FDRplot_DGRP2_8_Line", currentline, "_edgeR.pdf", sep = ''))
+  plotMD(lrtglm) +
+    abline(h = c(-1, 1), col = "blue") #to add blue lines to show 2 fold changes
+  dev.off()
+  write.csv(lrtglm$table, paste("lrtglm_DGRP2_8_Line", currentline, "_edgeR.csv", sep = ''))
 }
 
 
 
 
-#To pick out the genes that are the top appearances for AS across all lines, make an excel:
-#SPLICINGlrtglm_DGRP2_8_Top20Genes_ALLLINES_edgeR
-#Copy top 20 hits for splicing from each line into this excel and add column for line.
-#Then, make new excel tab to count individual occurrences of each gene in the ALLLINES tab to ID top appearances across all lines and which lines they appear in.
-#Use this to identify which genes to pull out exon profiles of for each line below:
 
-#To plot the exons used for each gene for this line
-#plotSpliceDGE(fitsplice, geneid = "FBgnxxx", genecolname = "GeneID")
 
-#For 1 195 (i=1): FBgn0086687 FBgn0261244
-#2 57: FBgn0086687 FBgn0027657 FBgn0051523 FBgn0052425
-#3 181: FBgn0086687
-#4 228: FBgn0051523
-#5 208: FBgn0086687 FBgn0262579 FBgn0027657 FBgn0051523
-#6 101: FBgn0262579
-#7 256: FBgn0262579
-#8 229: NA
-#9 235: FBgn0027657 FBgn0261244
-#10 177: FBgn0262579
-#11 M22: FBgn0086687 FBgn0262579 FBgn0027657 FBgn0261244 FBgn0051523 FBgn0052425
-#12 42: FBgn0086687 FBgn0052425
-#13 91: FBgn0027657 FBgn0052425
-#14 83: FBgn0262579 FBgn0052425
 
-#Save them for each line
-#1
-pdf("195_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0086687", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0261244", genecolname = "GeneID")
-dev.off()
+##-------Correlation plot
+setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/")
 
-#2
-pdf("57_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0086687", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0027657", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0051523", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0052425", genecolname = "GeneID")
-dev.off()
+line83=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line83_edgeR.csv")
+line91=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line91_edgeR.csv")
+lineM22=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_LineM22_edgeR.csv")
+line177=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line177_edgeR.csv")
+line235=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line235_edgeR.csv")
+line229=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line229_edgeR.csv")
+line101=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line101_edgeR.csv")
+line208=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line208_edgeR.csv")
+line228=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line228_edgeR.csv")
+line181=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line181_edgeR.csv")
+line57=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line57_edgeR.csv")
+line195=read.csv("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R/lrtglm_DGRP2_8_Line195_edgeR.csv")
 
-#3
-pdf("181_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0086687", genecolname = "GeneID")
-dev.off()
+allFBgn <- rbind(line83, line91, lineM22, line177, line235, line229, line101, line208, line228, line181, line57, line195)
+allFBgn <- select(allFBgn, X)
+allFBgn = distinct(allFBgn)
+#TO HERE
+#names(allFBgn) = c("dummy", "X")
 
-#4 228
-pdf("228_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0051523", genecolname = "GeneID")
-dev.off()
+total=merge(allFBgn,line83,by="X",all.x=T)
+total=merge(total,line91,by="X",suffixes=c(".83",".91"),all.x=T)
+total=merge(total,lineM22,by="X",all.x=T)
+total=merge(total,line177,by="X",suffixes=c(".M22",".177"),all.x=T)
+total=merge(total,line235,by="X",all.x=T)
+total=merge(total,line229,by="X",suffixes=c(".235",".229"),all.x=T)
+total=merge(total,line101,by="X",all.x=T)
+total=merge(total,line208,by="X",suffixes=c(".101",".208"),all.x=T)
+total=merge(total,line228,by="X",all.x=T)
+total=merge(total,line181,by="X",suffixes=c(".228",".181"),all.x=T)
+total=merge(total,line57,by="X",all.x=T)
+total=merge(total,line195,by="X",suffixes=c(".57",".195"),all.x=T)
+str(total)
 
-#5
-pdf("208_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0086687", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0262579", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0027657", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0051523", genecolname = "GeneID")
-dev.off()
+#logFC for each line
+names(total[,c(3,7,11,15,19,23,27,31,35,39,43,47)])
 
-#6
-pdf("101_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0262579", genecolname = "GeneID")
-dev.off()
+chart.Correlation(total[,c(3,7,11,15,19,23,27,31,35,39,43,47)], histogram = T, method = "spearman")
 
-#7
-pdf("256_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0262579", genecolname = "GeneID")
-dev.off()
+cor.test(total[,43], total[,47], method = "spearman", na.omit = T)
+cor(total[,43], total[,47], use = "pairwise.complete.obs", method = "spearman")
 
-#None for #8 229
+#To make nice graph
+#http://www.sthda.com/english/wiki/wiki.php?id_contents=7786
+#Make correlation coefficients table using only the logFC info
+ctotal <- cor(total[,c(3,7,11,15,19,23,27,31,35,39,43,47)], use = "pairwise.complete.obs", method = "spearman")
+#Correlation significance values (p-value)
+rtotal <- rcorr(ctotal)
+#Format correlation matrix
+flattenCorrMatrix <- function(ctotal, rtotal) {
+  ut <- upper.tri(ctotal)
+  data.frame(
+    row = rownames(ctotal)[row(ctotal)[ut]],
+    column = rownames(ctotal)[col(ctotal)[ut]],
+    cor = (ctotal)[ut],
+    p = (rtotal)[ut]
+  )
+}
 
-#9
-pdf("235_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0027657", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0261244", genecolname = "GeneID")
-dev.off()
+flatcm <- flattenCorrMatrix(rtotal$r, rtotal$P)
 
-#10
-pdf("177_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0262579", genecolname = "GeneID")
-dev.off()
+colnames(ctotal) <- gsub("logFC.","",colnames(ctotal))
+colnames(ctotal) <- gsub("M22","yw",colnames(ctotal))
+rownames(ctotal) <- gsub("logFC.","",rownames(ctotal))
+rownames(ctotal) <- gsub("M22","yw",rownames(ctotal))
 
-#11
-pdf("M22_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0086687", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0262579", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0027657", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0261244", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0051523", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0052425", genecolname = "GeneID")
-dev.off()
+corrplot(ctotal, method = "circle", type = "lower", diag = FALSE, order = "hclust")
 
-#12
-pdf("42_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0086687", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0261244", genecolname = "GeneID")
-dev.off()
-
-#13
-pdf("91_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0027657", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0052425", genecolname = "GeneID")
-dev.off()
-
-#14
-pdf("83_TopGenes_Exons.pdf")
-plotSpliceDGE(fitsplice, geneid = "FBgn0262579", genecolname = "GeneID")
-plotSpliceDGE(fitsplice, geneid = "FBgn0052425", genecolname = "GeneID")
-dev.off()
+corrplot.mixed(ctotal)
