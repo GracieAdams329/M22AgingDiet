@@ -897,7 +897,9 @@ library(dplyr)
 library(PerformanceAnalytics)
 setwd("Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/DietSwitch2_8_2021_R")
 
-##-------SETTING UP THE BALLGOWN OBJECT
+
+
+##-------Ballgown object
 #We have already run tablemaker to create the ctab files as specified in the vignette when using StringTie as part of the minimap script.
 #Using the version mapped to the genome rather than our transcriptome as otherwise the gene names aren't correct.
 #The quasi-likelihood method is highly recommended for differential expression analyses of bulk RNA-seq data as it gives stricter error rate control by
@@ -912,12 +914,127 @@ pheno <- read.csv("DS2_8_2021_SampleNames.csv")
 pheno = pheno[order(pheno$samplename),]
 
 #Create overall bg object
-overallbg = ballgown(dataDir = 'Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/MinimapOut/', samplePattern='Sample*', meas='all')
-overallbg
+bg = ballgown(dataDir = 'Z:/simons_lab1/Shared/nanopore_output/DietSwitch2_8_2021/MinimapOut/', samplePattern='Sample*', meas='all')
+bg
 
 #Add line information
-pData(overallbg) = data.frame(id = pheno$samplename, group.line = pheno$line, group.diet = pheno$diet)
-pData(overallbg)
+pData(bg) = data.frame(id = pheno$samplename, group.line = pheno$line, group.diet = pheno$diet)
+pData(bg)
+
+samples = sampleNames(bg)
+exonexpr <- eexpr(bg)
+transcript_id_by_exon = indexes(bg)$e2t$t_id[match(unique(indexes(bg)$e2t$e_id), indexes(bg)$e2t$e_id)]
+transcript_id_by_gene = indexes(bg)$t2g$t_id #Transcript/gene mapping
+geneID = indexes(bg)$t2g$g_id[match(transcript_id_by_exon, transcript_id_by_gene)]
+exonID = row.names(exonexpr)
+
+#This can get gene expression:
+#gene_expression = gexpr(bg)
+#trans_expression = texpr(bg)
+#edgeR good for the models: the quasi-likelihood method is highly recommended for differential expression analyses of bulk RNA-seq data
+
+
+
+##-------edgR
+#Preparing file for edgR
+#Important to read in clean and not as a data frame
+gns = as.data.frame(cbind(as.character(geneID), bg@expr$exon$chr, bg@expr$exon$start, bg@expr$exon$end, bg@expr$exon$strand, (bg@expr$exon$end-bg@expr$exon$start), bg@expr$exon$e_id))
+names(gns) = c("GeneID", "Chr", "Start", "End", "Strand", "Length", "ExonID")
+smpl = as.vector(colnames(exonexpr))
+cnts = as.matrix(exonexpr)
+
+#Raw counts and sum per gene
+sumgene = aggregate(cnts~gns$GeneID,FUN=sum)
+cntsgene = data.matrix(sumgene[,-1])
+rownames(cntsgene) = sumgene[,1]
+colnames(cntsgene) = colnames(cnts)
+str(cntsgene)
+gnsgene = rownames(cntsgene)
+
+#Make DGEList - edgeR object that can be manipulated like a list in R - matrix of counts contains integer counts, data.frame samples contains info about samples,
+#data.frame genes contains annotation. data.frame samples also contains column group for treatments
+#Filter to remove genes that have no counts at all
+edg = DGEList(counts = cntsgene, samples = smpl, genes = gnsgene, remove.zeros = T)
+
+#Check distribution of counts across genes
+AllCounts <- getCounts(edg)
+AllCounts <- as.data.frame(AllCounts)
+AllCounts$SumCounts <- rowSums(AllCounts)
+#Divide by number of samples (fine for this as repeating lots, usually would divide by overall reads or something)
+AllCounts$SumCountsDiv = (AllCounts$SumCounts/72)
+
+hist(AllCounts$SumCountsDiv)
+hist(log(AllCounts$SumCountsDiv))
+hist(log(AllCounts$SumCountsDiv), breaks = 500)
+
+#Look at the histograms above to decide the cpm threshold to use (5-10cpm to be considered expressed in a library and have biological significance, though differs between approaches)
+#eg If there are >20 cpm for this read in at least 8 of the samples, keep the gene, would be:
+#keep <- rowSums(cpm(edg) >20) >=8
+# exp(3)
+keep <- rowSums(cpm(edg) >5) >=3 #keeps around half the genes
+summary(keep)
+#To filter the DGEList above:
+filteredg = edg[keep, , keep.lib.sizes = FALSE]
+#Need to normalise library sizes using TMM to create effective library sizes to correct for small proportions of highly expressed genes consuming a substantial
+#portion of the library size for a sample
+normedg = calcNormFactors(filteredg)
+
+
+
+##-------Testing for DE genes
+#Obtain dispersion estimates and negative binomial GLMs to determine DE using quasi-likelihood (QL, best  as it reflects uncertainty in estimating dispersion) methods
+#Estimate dispersion using Cox-Reid (CR) profile-adjusted likelihood method for general experiments with multiple factors. It fits GLMs with a design matrix to overcome
+#issues of multiple factors
+
+#Do in a loop to test 8% vs 2% for each line
+linesthere <- unique(pheno$line)
+linesthere
+for(in in 1:length(linesthere))
+{ 
+  currentline = linesthere[1]
+  #Need to generate a design matrix
+  fordesignmatrix = read.csv('DS2_8_2021_SampleNames.csv')
+  #To order the design matrix alphabetically:
+  fordesignmatrix = fordesignmatrix[order(fordesignmatrix$samplename),]
+  #Select relevant samples
+  
+  #GOT TO HERE BUT UNSURE HOW TO FILTER EDGER OBJECT
+  
+  
+  subset bg by group.line == currentline
+  fordesignmatrix = filter(fordesignmatrix, samplename == samples)
+  str(fordesignmatrix)
+  fordesignmatrix$diet = factor(fordesignmatrix$diet)
+  fordesignmatrix$diet = relevel(fordesignmatrix$diet, ref="8")
+  unique(fordesignmatrix$line)
+  
+  design = model.matrix(~ diet + line, data = fordesignmatrix)
+  rownames(design) = fordesignmatrix$samplename
+  design
+  #To estimate common, trended and tagwise dispersions all at once:
+  estdisp = estimateDisp(normedg, design)
+  
+  #Testing for DE genes
+  #The coefficient is the column you are looking at from the model, see columns using:
+  colnames(design)
+  design
+  #this would be old school way of fitting data, might be better with small sample sizes.
+  fitglm <- glmFit(estdisp, design)
+  lrtglm <- glmLRT(fitglm, coef = 2)
+  #topTags(lrtglm, n = 20)
+  #Total number of DE genes at 5% FDR:
+  summary(decideTests(lrtglm))
+  pdf(paste("DEgenes5FDRplot_DGRP2_8_Line", currentline, "_edgeR.pdf", sep = ''))
+  plotMD(lrtglm) +
+    abline(h = c(-1, 1), col = "blue") #to add blue lines to show 2 fold changes
+  dev.off()
+  write.csv(lrtglm$table, paste("lrtglm_DGRP2_8_Line", currentline, "_edgeR.csv", sep = ''))
+}
+
+  
+
+
+
 
 
 
@@ -943,105 +1060,8 @@ for(i in 1:length(linesthere))
   #meas gives the expression measurements present in the object.
   #When performing analyses on bg object, don't use FPKM as not suitable for long-read data since reads are all different lengths unlike Illumina etc.
   
-  samples = sampleNames(bg)
-  exonexpr <- eexpr(bg)
-  transcript_id_by_exon = indexes(bg)$e2t$t_id[match(unique(indexes(bg)$e2t$e_id), indexes(bg)$e2t$e_id)]
-  transcript_id_by_gene = indexes(bg)$t2g$t_id #Transcript/gene mapping
-  geneID = indexes(bg)$t2g$g_id[match(transcript_id_by_exon, transcript_id_by_gene)]
-  exonID = row.names(exonexpr)
-  
-  #This can get gene expression:
-  #gene_expression = gexpr(bg)
-  #trans_expression = texpr(bg)
-  #edgeR good for the models: the quasi-likelihood method is highly recommended for differential expression analyses of bulk RNA-seq data
-  
-  
-  
-  ##edgR:
-  #Preparing file for edgR
-  #Important to read in clean and not as a data frame
-  gns = as.data.frame(cbind(as.character(geneID), bg@expr$exon$chr, bg@expr$exon$start, bg@expr$exon$end, bg@expr$exon$strand, (bg@expr$exon$end-bg@expr$exon$start), bg@expr$exon$e_id))
-  names(gns) = c("GeneID", "Chr", "Start", "End", "Strand", "Length", "ExonID")
-  smpl = as.vector(colnames(exonexpr))
-  cnts = as.matrix(exonexpr)
-  
-  #Raw counts and sum per gene
-  sumgene = aggregate(cnts~gns$GeneID,FUN=sum)
-  cntsgene = data.matrix(sumgene[,-1])
-  rownames(cntsgene) = sumgene[,1]
-  colnames(cntsgene) = colnames(cnts)
-  str(cntsgene)
-  gnsgene = rownames(cntsgene)
-  
-  #Make DGEList - edgeR object that can be manipulated like a list in R - matrix of counts contains integer counts, data.frame samples contains info about samples,
-  #data.frame genes contains annotation. data.frame samples also contains column group for treatments
-  #Filter to remove genes that have no counts at all
-  edg = DGEList(counts = cntsgene, samples = smpl, genes = gnsgene, remove.zeros = T)
-  
-  #Check distribution of counts across genes
-  AllCounts <- getCounts(edg)
-  AllCounts <- as.data.frame(AllCounts)
-  AllCounts$SumCounts <- rowSums(AllCounts)
-  #Divide by number of samples (fine for this as repeating lots, usually would divide by overall reads or something)
-  AllCounts$SumCountsDiv = (AllCounts$SumCounts/6)
-  
-  hist(AllCounts$SumCountsDiv)
-  hist(log(AllCounts$SumCountsDiv))
-  hist(log(AllCounts$SumCountsDiv), breaks = 500)
-  
-  #Look at the histograms above to decide the cpm threshold to use (5-10cpm to be considered expressed in a library and have biological significance, though differs between approaches)
-  #eg If there are >20 cpm for this read in at least 8 of the samples, keep the gene, would be:
-  #keep <- rowSums(cpm(edg) >20) >=8
-  # exp(3)
-  keep <- rowSums(cpm(edg) >5) >=3 #keeps around half the genes
-  summary(keep)
-  #To filter the DGEList above:
-  filteredg = edg[keep, , keep.lib.sizes = FALSE]
-  #Need to normalise library sizes using TMM to create effective library sizes to correct for small proportions of highly expressed genes consuming a substantial
-  #portion of the library size for a sample
-  normedg = calcNormFactors(filteredg)
-  
-  
  
-  
-  
-  
-  
-  #######TESTING FOR DE GENES#######
-  #Obtain dispersion estimates and negative binomial GLMs to determine DE using quasi-likelihood (QL, best  as it reflects uncertainty in estimating dispersion) methods
-  #Estimate dispersion using Cox-Reid (CR) profile-adjusted likelihood method for general experiments with multiple factors. It fits GLMs with a design matrix to overcome
-  #issues of multiple factors
-  #Need to generate a design matrix
-  fordesignmatrix = read.csv('DS2_8_2021_SampleNames.csv')
-  #To order the design matrix alphabetically:
-  fordesignmatrix = fordesignmatrix[order(fordesignmatrix$samplename),]
-  #Select relevant samples
-  fordesignmatrix = filter(fordesignmatrix, samplename == samples)
-  str(fordesignmatrix)
-  fordesignmatrix$diet = factor(fordesignmatrix$diet)
-  fordesignmatrix$diet = relevel(fordesignmatrix$diet, ref="8")
-  
-  design = model.matrix(~1+diet, data = fordesignmatrix)
-  rownames(design) = fordesignmatrix$samplename
-  design
-  #To estimate common, trended and tagwise dispersions all at once:
-  estdisp = estimateDisp(normedg, design)
-  
-  #Testing for DE genes
-  #The coefficient is the column you are looking at from the model, see columns using:
-  colnames(design)
-  design
-  #this would be old school way of fitting data, might be better with small sample sizes.
-  fitglm <- glmFit(estdisp, design)
-  lrtglm <- glmLRT(fitglm, coef = 2)
-  #topTags(lrtglm, n = 20)
-  #Total number of DE genes at 5% FDR:
-  summary(decideTests(lrtglm))
-  pdf(paste("DEgenes5FDRplot_DGRP2_8_Line", currentline, "_edgeR.pdf", sep = ''))
-  plotMD(lrtglm) +
-    abline(h = c(-1, 1), col = "blue") #to add blue lines to show 2 fold changes
-  dev.off()
-  write.csv(lrtglm$table, paste("lrtglm_DGRP2_8_Line", currentline, "_edgeR.csv", sep = ''))
+ 
 }
 
 
