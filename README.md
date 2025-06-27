@@ -1,6 +1,6 @@
 # ONT RNASeq Pipeline for M22AgingDiet (GracieM22AgingDiet_130424)
-**Please see https://github.com/GracieAdams329/ONT-RNASeq-Pipeline.git if there are any default bits of code missing, especially at the start eg. to install certain packages!** 
-Pipeline for analysis of whole transcriptome data generated using ONT's PCR-cDNA barcoding kits on the GridION (or PromethION).  
+**Please see https://github.com/GracieAdams329/ONT-RNASeq-Pipeline.git if there are any default bits of code missing, especially at the start eg. to install certain packages!**<br>
+ Pipeline for analysis of whole transcriptome data generated using ONT's PCR-cDNA barcoding kits on the GridION (or PromethION).  
 Previously tracked/stored using Google Docs on the Simons Lab Google Drive/ONT Sequencing folder (up until 21/10/24).
 
 Help for formatting: https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
